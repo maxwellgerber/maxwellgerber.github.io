@@ -1,9 +1,12 @@
 html, body {
+	background:#33434A
     margin: 0;
     padding: 0;
     height: 100%;
 }
-
+::-webkit-scrollbar { 
+    display: none; 
+}
 /* Header */
 #head { background:#33434A url( ../images/landmark.jpeg) no-repeat center center; 
 	background-size: cover;   
