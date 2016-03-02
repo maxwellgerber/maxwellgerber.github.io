@@ -26,19 +26,21 @@
 </head>
 
 <body class="home">
+
 	<!-- Fixed navbar -->
-	<div class="navbar navbar-inverse navbar-fixed-top headroom" >
+	<div class="navbar navbar-fixed-top headroom" >
 			<div class="navbar">
 				<ul class="nav nav-pills pull-left">
-					<li><a href="https://www.linkedin.com/in/maxwell-gerber-143a97b1"><i class="fa fa-linkedin fa-lg"></i></a></li>
-					<li><a href="https://github.com/maxwellgerber"><i class="fa fa-github fa-lg"></i></a></li>
+					<li class="highlight2"><a href="https://www.linkedin.com/in/maxwell-gerber-143a97b1"><i class="fa fa-linkedin fa-lg"></i></a></li>
+					<li class="highlight2"><a href="https://github.com/maxwellgerber"><i class="fa fa-github fa-lg"></i></a></li>
 				</ul>
 				<ul class="nav nav-pills pull-right">
 					<li class="active"><a href="#">Home</a></li>
-					<li><a href="resume.html">Resume</a></li>
-					<li><a href="">Projects</a></li>
-					<li><a href="">Blog</a></li>
-					<li><a href="">Contact</a></li>
+					<li class="highlight2"><a href="resume.html">Resume</a></li>
+					<li class="highlight2"><a href="">EECS Projects</a></li>
+					<li class="highlight2"><a href="">ME Projects</a></li>
+					<li class="highlight2"><a href="">Blog</a></li>
+					<li class="highlight2"><a href="">Contact</a></li>
 				</ul>
 			</div>
 	</div> 
@@ -48,47 +50,69 @@
 	<header id="head">
 		<div class="container">
 			<div class="row">
-				<h1 class="lead">I am a work in progress</h1>
+				<h1 class="lead"><b>Max Gerber</b></h1>
+				<h3 class="tagline">resume + blog + portofolio</h3>
 			</div>
 		</div>
 	</header>
 	<!-- /Header -->
 
 	<!-- Intro -->
-	<div class="container text-center">
-		<br> <br>
-		<h2 class="thin">I am Max Gerber, an EECS and ME student at UC Berkeley</h2>
+	<div class="jumbotron text-center">
+		<h2 class="thick">I am Max Gerber, an EECS and ME student at UC Berkeley</h2>
 		<p class="text-muted">
 			This is a website I am building to demo my portfolio. Expect it to get cooler over time!<br>
-			<br><br><br>
+			<br>
 		</p>
+		<hr>
+		<h2 class="thick">Here are a few of my recent projects:</h2>
 	</div>
-	<!-- /Intro-->
-		<!--  -->
-	<!-- Social links. @TODO: replace by link/instructions in template -->
-	<section id="social">
-		<div class="container">
-			<div class="wrapper clearfix">
-				<!-- AddThis Button BEGIN -->
-				<div class="addthis_toolbox addthis_default_style">
-				<a class="addthis_button_facebook_like" fb:like:layout="button_count"></a>
-				<a class="addthis_button_tweet"></a>
-				<a class="addthis_button_linkedin_counter"></a>
-				<a class="addthis_button_google_plusone" g:plusone:size="medium"></a>
-				</div>
-				<!-- AddThis Button END -->
-			</div>
-		</div>
-	</section>
-	<!-- /social links -->
+	<!-- /Intro -->
 
+	<div class="top-margin sides">
+      <div class="row featurette">
+        <div class="col-md-7">
+          <h2 class="featurette-heading">First project goes here. <span class="text-muted">It'll blow your mind.</span></h2>
+          <p class="lead">Donec ullamcorper nulla non metus auctor fringilla. Vestibulum id ligula porta felis euismod semper. Praesent commodo cursus magna, vel scelerisque nisl consectetur. Fusce dapibus, tellus ac cursus commodo.</p>
+        </div>
+        <div class="col-md-5">
+          <img class="featurette-image img-fluid center-block" src="./assets/images/1.jpg" alt="Generic  image">
+        </div>
+      </div>
 
-	<footer id="footer" class="top-space">
+      <hr class="featurette-divider">
+
+      <div class="row featurette">
+        <div class="col-md-7 col-md-push-5">
+          <h2 class="featurette-heading">Another project right here. <span class="text-muted">See for yourself.</span></h2>
+          <p class="lead">Donec ullamcorper nulla non metus auctor fringilla. Vestibulum id ligula porta felis euismod semper. Praesent commodo cursus magna, vel scelerisque nisl consectetur. Fusce dapibus, tellus ac cursus commodo.</p>
+        </div>
+        <div class="col-md-5 col-md-pull-7">
+          <img class="featurette-image img-fluid center-block" src="./assets/images/2.jpg" alt="Generic placeholder image">
+        </div>
+      </div>
+
+      <hr class="featurette-divider">
+
+      <div class="row featurette">
+        <div class="col-md-7">
+          <h2 class="featurette-heading">And lastly, this one.</h2>
+          <p class="lead">Donec ullamcorper nulla non metus auctor fringilla. Vestibulum id ligula porta felis euismod semper. Praesent commodo cursus magna, vel scelerisque nisl consectetur. Fusce dapibus, tellus ac cursus commodo.</p>
+        </div>
+        <div class="col-md-5">
+          <img class="featurette-image img-fluid center-block" src="./assets/images/1.jpg" alt="Generic placeholder image">
+        </div>
+      </div>
+      <br>
+	</div>
+
+	<!-- Footer-->
+	<footer id="footer" >
 
 		<div class="footer2">
 			<div class="container">
 				<div class="row">
-
+				<br>
 				</div> <!-- /row of widgets -->
 			</div>
 		</div>
@@ -97,21 +121,23 @@
 			<div class="container">
 				<div class="row">
 					
-					<div class="col-md-8 widget">
+					<div class="col-md-6 widget">
 						<div class="widget-body">
 							<p class="text-left">
 								<a href="#">Home</a> | 
-								<a href="">Projects</a> |
-								<a href="">Resume</a> |
+								<a href="resume.html">Resume</a> |
+								<a href="">EECS Projects</a> |
+								<a href="">ME Projects</a> |
+								<a href="">Blog</a> |
 								<a href="">Contact</a>
 							</p>
 						</div>
 					</div>
 
-					<div class="col-md-4 widget">
+					<div class="col-md-6 widget">
 						<div class="widget-body">
 							<p class="text-right">
-								Copyright &copy; 2016, Maxwell Gerber. Based on <a href="http://gettemplate.com/" rel="designer">gettemplate</a> 
+								Copyright &copy; 2016, Maxwell Gerber. Based on Progressus by <a href="http://gettemplate.com/" rel="designer">gettemplate</a> 
 							</p>
 						</div>
 					</div>
@@ -120,7 +146,8 @@
 			</div>
 		</div>
 
-	</footer>	
+	</footer>
+	<!-- /Footer-->	
 		
 	<!-- JavaScript libs are placed at the end of the document so the pages load faster -->
 	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
