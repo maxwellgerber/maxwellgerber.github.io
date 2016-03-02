@@ -1,0 +1,13 @@
+.picture {
+	background:#33434A url( ../images/bridge.jpg) no-repeat center center; 
+	background-size: cover;   
+    height: auto !important;
+    min-height:100%;  
+    text-align: center; 
+    padding-top:240px; 
+    padding-bottom:170px; 
+    height: 100%;
+}
+.well{
+	background: rgba(255,255,255,.4);
+}
