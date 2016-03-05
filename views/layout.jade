@@ -20,26 +20,37 @@ html(lang='en')
       script(src='js/respond.min.js')
   body.home
     // Fixed navbar
-    div.navbar.navbar-inverse.navbar-fixed-top
+    nav.navbar.navbar-inverse.navbar-fixed-top(style='background:rgba(0, 0, 0, .8);')
       .container-fluid
         .navbar-header
-          button.btn.btn-navbar(type='button', data-toggle='collapse', data-target='.nav-collapse')
+          button.navbar-toggle.collapsed(type='button', data-toggle='collapse', data-target='#navbar', aria-expanded='false', aria-controls='navbar')
+            span.sr-only Toggle navigation
             span.icon-bar
             span.icon-bar
             span.icon-bar
-          div.navbar-collapse.collapse
-            ul.nav.nav-pills.pull-right
-              block nav
-                li.active
-                  a(href='#') Home
-                li.highlight2
-                  a(href='resume.html') Resume
-                li.highlight2
-                  a(href='project.html') EECS Projects
-                li.highlight2
-                  a(href='project.html') ME Projects
-                li.highlight2
-                  a(href='contact.html') Contact
+          ul.nav.nav-pills.pull-left
+            li.highlight2
+              a(href='https://www.linkedin.com/in/maxwell-gerber-143a97b1')
+                i.fa.fa-linkedin.fa-lg
+            li.highlight2
+              a(href='https://github.com/maxwellgerber')
+                i.fa.fa-github.fa-lg
+        #navbar.navbar-collapse.collapse
+          ul.nav.nav-pills.pull-right
+            block nav
+              li.active
+                a(href='#') Home
+              li.highlight2
+                a(href='resume.html') Resume
+              li.highlight2
+                a(href='project.html') EECS Projects
+              li.highlight2
+                a(href='project.html') ME Projects
+              li.highlight2
+                a(href='contact.html') Contact
+        // /.nav-collapse
+      // /.container-fluid
+
     block content
         p some randonm stuff
           br
