@@ -1,0 +1,7 @@
+extends ./layout.jade
+
+block style
+
+block content
+  object(data='Resume.pdf', type='application/pdf', width='100%', height='100%')
+    embed(src='Resume.pdf', type='application/pdf', width='100%', height='100%')

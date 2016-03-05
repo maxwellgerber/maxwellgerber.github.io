@@ -1,0 +1,93 @@
+doctype html
+html(lang='en')
+  head
+    meta(charset='utf-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1.0')
+    meta(name='description', content='')
+    meta(name='author', content='Sergey Pozhilov (GetTemplate.com)')
+    title Maxwell Gerber
+    link(rel='shortcut icon', href='images/coffee.png')
+    link(rel='stylesheet', media='screen', href='http://fonts.googleapis.com/css?family=Open+Sans:300,400,700')
+    link(rel='stylesheet', href='css/bootstrap.min.css')
+    link(rel='stylesheet', href='https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css')
+    // Custom styles for our template
+    link(rel='stylesheet', href='css/bootstrap-theme.css', media='screen')
+    link(rel='stylesheet', href='css/main.css')
+    block style
+    // HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries
+    //if lt IE 9
+      script(src='js/html5shiv.js')
+      script(src='js/respond.min.js')
+  body.home
+    // Fixed navbar
+    div.navbar.navbar-inverse.navbar-fixed-top
+      .container-fluid
+        .navbar-header
+          button.btn.btn-navbar(type='button', data-toggle='collapse', data-target='.nav-collapse')
+            span.icon-bar
+            span.icon-bar
+            span.icon-bar
+          div.navbar-collapse.collapse
+            ul.nav.nav-pills.pull-right
+              block nav
+                li.active
+                  a(href='#') Home
+                li.highlight2
+                  a(href='resume.html') Resume
+                li.highlight2
+                  a(href='project.html') EECS Projects
+                li.highlight2
+                  a(href='project.html') ME Projects
+                li.highlight2
+                  a(href='contact.html') Contact
+    block content
+        p some randonm stuff
+          br
+          br
+          br
+          br
+          br
+          br
+          br
+          br
+          br
+          br
+          br
+          br
+          br
+          br
+          br
+          br
+
+    footer#footer
+      .footer2
+        .container
+          .row
+            br
+          // /row of widgets
+      .footer1
+        .container
+          .row
+            .col-md-6.widget
+              .widget-body
+                p.text-left
+                  a(href='index.html') Home
+                  |  |
+                  a(href='resume.html') Resume
+                  |  |
+                  a(href='project.html') EECS Projects
+                  |  |
+                  a(href='project.html') ME Projects
+                  |  |
+                  a(href='contact.html') Contact
+            .col-md-6.widget
+              .widget-body
+                p.text-right
+                  | Copyright © 2016, Maxwell Gerber. Based on Progressus by 
+                  a(href='http://gettemplate.com/', rel='designer') gettemplate
+          // /row of widgets
+    // /Footer
+    // JavaScript libs are placed at the end of the document so the pages load faster
+    script(src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js')
+    script(src='http://netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js')
+    block scripts

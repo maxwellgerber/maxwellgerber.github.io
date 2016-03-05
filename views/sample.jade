@@ -1,120 +1,45 @@
-doctype html
-html(lang='en')
-  head
-    meta(charset='utf-8')
-    meta(name='viewport', content='width=device-width, initial-scale=1.0')
-    meta(name='description', content='')
-    meta(name='author', content='Sergey Pozhilov (GetTemplate.com)')
-    title Maxwell Gerber
-    link(rel='shortcut icon', href='images/coffee.png')
-    link(rel='stylesheet', media='screen', href='http://fonts.googleapis.com/css?family=Open+Sans:300,400,700')
-    link(rel='stylesheet', href='css/bootstrap.min.css')
-    link(rel='stylesheet', href='https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css')
-    // Custom styles for our template
-    link(rel='stylesheet', href='css/bootstrap-theme.css', media='screen')
-    link(rel='stylesheet', href='css/main.css')
-    link(rel='stylesheet', href='css/sample.css')
-    // HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries
-    //if lt IE 9
-      script(src='js/html5shiv.js')
-      script(src='js/respond.min.js')
-  body.home
-    // Fixed navbar
-    .navbar.navbar-inverse.navbar-fixed-top
-      .navbar
-        ul.nav.nav-pills.pull-left
-          li.highlight2
-            a(href='https://www.linkedin.com/in/maxwell-gerber-143a97b1')
-              i.fa.fa-linkedin.fa-lg
-          li.highlight2
-            a(href='https://github.com/maxwellgerber')
-              i.fa.fa-github.fa-lg
-        ul.nav.nav-pills.pull-right
-          li.highlight2
-            a(href='index.html') Home
-          li.highlight2
-            a(href='resume.html') Resume
-          li.highlight2
-            a(href='project.html') EECS Projects
-          li.highlight2
-            a(href='project.html') ME Projects
-          li.highlight2
-            a(href='contact.html') Contact
-    // /.navbar
-    .picture
-      .column-tight
-        .container-tight
-          h1
-            | I am an example project. I have inline latex and maybe pictures later.
-          h2
-            small There are lots of cool things I can do.
-          br
-          .text-center(lang='latex')
-            | \begin{align*}
-            | \sin A \cos B &= \frac{1}{2}\left[ \sin(A-B)+\sin(A+B) \right] \\
-            | \sin A \sin B &= \frac{1}{2}\left[ \sin(A-B)-\cos(A+B) \right] \\
-            | \cos A \cos B &= \frac{1}{2}\left[ \cos(A-B)+\cos(A+B) \right] \\
-            | \end{align*}
-          br
-          hr(width='60%', size='6', noshade='')
-          p
-          h3 Lorem ipsum
-          i.fa.fa-quote-left.fa-2x.fa-pull-left.fa-border
-          | 			dolor sit amet, consectetur adipiscing elit. Donec turpis dolor, tristique a facilisis quis, tincidunt in odio. Proin sed sollicitudin est. Aliquam erat volutpat. Cras ullamcorper vel
-          i.fa.fa-quote-right.fa-2x.fa-pull-right.fa-border
-          | 			 neque eu semper. Vivamus congue porta sem id consectetur. Nunc non nibh nunc. Fusce ac finibus metus, id bibendum nibh. 
-          | 			Fusce quis interdum turpis, ac posuere orci. Nullam eu dapibus orci, in rhoncus velit.
-          p
-          blockquote
-            i.fa.fa-circle-o-notch.fa-pull-left.fa-spin
-            | 			Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec turpis dolor, tristique a
-            | 			facilisis quis, tincidunt in odio. Proin sed sollicitudin est. Aliquam erat volutpat. Cras ullamcorper vel neque eu semper. Vivamus congue porta sem id consectetur. Nunc non nibh nunc. Fusce ac finibus metus, id bibendum nibh. Fusce quis interdum turpis, ac posuere orci. Nullam eu dapibus orci, in rhoncus velit.
-          blockquote.blockquote-reverse
-            | Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec turpis dolor, tristique a facilisis quis, tincidunt in odio. Proin sed sollicitudin est. Aliquam erat volutpat. Cras ullamcorper vel neque eu semper. Vivamus congue porta sem id consectetur. Nunc non nibh nunc. Fusce ac finibus metus, id bibendum nibh. Fusce quis interdum turpis, ac posuere orci. Nullam eu dapibus orci, in rhoncus velit.
-          p
-            | Lorem ipsum dolor 
-            code sit amet, consectetur 
-            | adipiscing elit. Donec turpis dolor, tristique a facilisis quis, tincidunt in odio. Proin sed sollicitudin est. Aliquam erat volutpat. Cras ullamcorper vel neque eu 
-            mark semper. Vivamus
-            |  congue porta sem id consectetur. Nunc non nibh nunc. Fusce ac finibus metus, id bibendum nibh. Fusce quis interdum turpis, ac posuere orci. Nullam eu dapibus orci, in rhoncus velit.
-          pre.
-            \nLorem ipsum dolor sit amet, consectetur adipiscing elit. Donec turpis dolor, tristique a facilisis quis, tincidunt in odio. Proin sed sollicitudin est. Aliquam erat volutpat. Cras ullamcorper vel neque eu semper. Vivamus congue porta sem id consectetur. Nunc non nibh nunc. Fusce ac finibus metus, id bibendum nibh. Fusce quis interdum turpis, ac posuere orci. Nullam eu dapibus orci, in rhoncus velit.
-            \t\t            
-    // Footer
-    footer#footer
-      .footer2
-        .container
-          .row
-            br
-          // /row of widgets
-      .footer1
-        .container
-          .row
-            .col-md-6.widget
-              .widget-body
-                p.text-left
-                  a(href='index.html') Home
-                  |  |
-                  a(href='resume.html') Resume
-                  |  |
-                  a(href='project.html') EECS Projects
-                  |  |
-                  a(href='project.html') ME Projects
-                  |  |
-                  a(href='#') Blog
-                  |  |
-                  a(href='#') Contact
-            .col-md-6.widget
-              .widget-body
-                p.text-right
-                  | Copyright © 2016, Maxwell Gerber. Based on Progressus by 
-                  a(href='http://gettemplate.com/', rel='designer') gettemplate
-          // /row of widgets
-    // /Footer
-    // JavaScript libs are placed at the end of the document so the pages load faster
-    script(src='http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js')
-    script(src='http://netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js')
-    script(src='js/headroom.min.js')
-    script(src='js/jQuery.headroom.min.js')
-    script(type='text/javascript', src='http://latex.codecogs.com/latexit.js')
-    script(src='js/template.js')
+extends ./layout.jade
+
+block style
+  link(rel='stylesheet', href='css/sample.css')
+
+block content
+  .picture
+    .column-tight
+      .container-tight
+        h1
+          | I am an example project. I have inline latex and maybe pictures later.
+        h2
+          small There are lots of cool things I can do.
+        br
+        .text-center(lang='latex')
+          | \begin{align*}
+          | \sin A \cos B &= \frac{1}{2}\left[ \sin(A-B)+\sin(A+B) \right] \\
+          | \sin A \sin B &= \frac{1}{2}\left[ \sin(A-B)-\cos(A+B) \right] \\
+          | \cos A \cos B &= \frac{1}{2}\left[ \cos(A-B)+\cos(A+B) \right] \\
+          | \end{align*}
+        br
+        hr(width='60%', size='6', noshade='')
+        p
+        h3 Lorem ipsum
+        i.fa.fa-quote-left.fa-2x.fa-pull-left.fa-border
+        | 			dolor sit amet, consectetur adipiscing elit. Donec turpis dolor, tristique a facilisis quis, tincidunt in odio. Proin sed sollicitudin est. Aliquam erat volutpat. Cras ullamcorper vel
+        i.fa.fa-quote-right.fa-2x.fa-pull-right.fa-border
+        | 			 neque eu semper. Vivamus congue porta sem id consectetur. Nunc non nibh nunc. Fusce ac finibus metus, id bibendum nibh. 
+        | 			Fusce quis interdum turpis, ac posuere orci. Nullam eu dapibus orci, in rhoncus velit.
+        p
+        blockquote
+          i.fa.fa-circle-o-notch.fa-pull-left.fa-spin
+          | 			Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec turpis dolor, tristique a
+          | 			facilisis quis, tincidunt in odio. Proin sed sollicitudin est. Aliquam erat volutpat. Cras ullamcorper vel neque eu semper. Vivamus congue porta sem id consectetur. Nunc non nibh nunc. Fusce ac finibus metus, id bibendum nibh. Fusce quis interdum turpis, ac posuere orci. Nullam eu dapibus orci, in rhoncus velit.
+        blockquote.blockquote-reverse
+          | Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec turpis dolor, tristique a facilisis quis, tincidunt in odio. Proin sed sollicitudin est. Aliquam erat volutpat. Cras ullamcorper vel neque eu semper. Vivamus congue porta sem id consectetur. Nunc non nibh nunc. Fusce ac finibus metus, id bibendum nibh. Fusce quis interdum turpis, ac posuere orci. Nullam eu dapibus orci, in rhoncus velit.
+        p
+          | Lorem ipsum dolor 
+          code sit amet, consectetur 
+          | adipiscing elit. Donec turpis dolor, tristique a facilisis quis, tincidunt in odio. Proin sed sollicitudin est. Aliquam erat volutpat. Cras ullamcorper vel neque eu 
+          mark semper. Vivamus
+          |  congue porta sem id consectetur. Nunc non nibh nunc. Fusce ac finibus metus, id bibendum nibh. Fusce quis interdum turpis, ac posuere orci. Nullam eu dapibus orci, in rhoncus velit.
+        pre.
+          \nLorem ipsum dolor sit amet, consectetur adipiscing elit. Donec turpis dolor, tristique a facilisis quis, tincidunt in odio. Proin sed sollicitudin est. Aliquam erat volutpat. Cras ullamcorper vel neque eu semper. Vivamus congue porta sem id consectetur. Nunc non nibh nunc. Fusce ac finibus metus, id bibendum nibh. Fusce quis interdum turpis, ac posuere orci. Nullam eu dapibus orci, in rhoncus velit.
+          \t\t            
