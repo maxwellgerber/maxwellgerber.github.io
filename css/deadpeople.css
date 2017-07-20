@@ -1,0 +1,18 @@
+body {
+	padding: 20px;
+	font: 20px/1.5 Lato, "Helvetica Neue", Helvetica, Arial, sans-serif;
+	font-weight: 400;
+}
+
+svg {
+    cursor: pointer;
+}
+
+.states {
+    stroke: #000;
+}
+
+.symbol {
+    fill: steelblue;
+    stroke: #fff;
+}
