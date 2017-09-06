@@ -1,4 +1,3 @@
 # maxwellgerber.github.io
-Why are you here go to [here](maxwellgerber.github.io)
-
-Stolen mercilessly from [someone much more impressive than me](http://evanlimanto.github.io/)
+[github pages site](maxwellgerber.github.io)
+This is a repo for my personal website/online resume where I show off some of my cooler projects. Expect it to get cooler over time!

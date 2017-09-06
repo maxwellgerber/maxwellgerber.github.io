@@ -1,0 +1,14 @@
+@media only screen and (min-width: 600px) {
+    /* For tablets: */
+
+	[class*="col-"] {
+	    padding: 7px;
+	}
+}
+@media only screen and (min-width: 768px) {
+    /* For desktop: */
+ 
+	[class*="col-"] {
+	    padding: 15px;
+	}
+}
