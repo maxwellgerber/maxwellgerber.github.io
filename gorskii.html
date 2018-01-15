@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<title>Maxwell Gerber</title>
+	<title>Maxwell Gerber - Images of the Russian Empire</title>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,15 +10,10 @@
 	<meta name="author" content="Maxwell Gerber"> 
 
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" crossorigin="anonymous">
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-
-
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.1.20/jquery.fancybox.min.css" />
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.1.20/jquery.fancybox.min.js"></script>
 
 	<link rel="stylesheet" href="css/main.css">
 	<link rel="stylesheet" href="css/gorskii.css">
-	<!-- <link rel="icon" type="image/png" href="img/github.png"/> -->
+	<link rel="icon" type="image/png" href="img/github.png"/>
 </head>
 <body>
 <div class="container">
@@ -44,34 +39,22 @@
 	</div>
 	<div class="row"> <h4 class="page-header">Initial Results</h4>
 		<div class="col-md-12">
-		The initial results were very good on most of the images in the dataset. I was amazed at how crisp and clear the aligned images became. The results of my aligning of the self portrait image are shown below. (Click to zoom!)
+		The initial results were very good on most of the images in the dataset. I was amazed at how crisp and clear the aligned images became. The results of my aligning of the self portrait image are shown below.
 		</div>
-		<div class="col-md-4 col-md-offset-1">
-			<a
-			data-fancybox="align" 
-			data-caption="Original image"
-			href='./img/self_portrait.jpg'> <img src='./img/self_portrait.jpg'> </a>
+		<div class="col-md-4 col-md-offset-1 center-text">
+			<img src='./img/self_portrait.jpg'>
 		</div>
-		<div class="col-md-4 col-md-offset-1">
-			<a 
-			data-fancybox="align"
-			data-caption="Contrast modified image"
-			href='./img/self_portrait_moved.jpg'> <img src='./img/self_portrait_moved.jpg'> </a>
+		<div class="col-md-4 col-md-offset-1 center-text">
+			<img src='./img/self_portrait_moved.jpg'>
 		</div>
 		<div class="col-md-12">
 		Upon closer inspection, many of the images have very small aberrations as a result of movement. Since all the photos were not taken at exactly the same time, colorful bursts appear whenever an element in the scene has changed position. My favorite example of this is the camel's face in the turkman image. The man held still so his face remained very sharp, but you can see that the camel moved its face slightly - leading to an aurora of red around it. You can also see the yellow silhouette of a  woman mid-turn in the harvesters photo. I'm unsure what steps, if any, could be used to correct this.  
 		</div>
-		<div class="col-md-4 col-md-offset-1">
-			<a
-			data-fancybox="align" 
-			data-caption="Original image"
-			href='./img/harvesters_moved.jpg'> <img src='./img/harvesters_moved.jpg'> </a>
+		<div class="col-md-4 col-md-offset-1 center-text">
+			<img src='./img/harvesters_moved.jpg'>
 		</div>
-		<div class="col-md-4 col-md-offset-1">
-			<a 
-			data-fancybox="align"
-			data-caption="Contrast modified image"
-			href='./img/turkmen_moved.jpg'> <img src='./img/turkmen_moved.jpg'> </a>
+		<div class="col-md-4 col-md-offset-1 center-text">
+			<img src='./img/turkmen_moved.jpg'>
 		</div>
 	</div>
 	<div class="row"> <h4 class="page-header">Bells and Whistles 1 - Automatic Cropping</h4>
@@ -82,106 +65,45 @@
 	For each side in (top, bottom, left, right):
 		Average the values of a 1xN strip of pixels along that edge
 		If the average is &gt; .9 or &lt; .1, it is part of a white or black border, and can be cropped</code></pre>
+
 		I scanned each side up to a depth equal to 1/12th of the overall image. This was because for lighter background images, such as the nativity, my algorithm would happily crop as much as it could of the sky! If I had more time, I would investigate using edge detection to do the cropping instead. The results of my cropping on the train image are shown below. For the most part I am very happy with how it turned out.  
 		</div>
-		<div class="col-md-4 col-md-offset-1">
-			<a
-			data-fancybox="crop" 
-			data-caption="Original image"
-			href='./img/train_moved.jpg'> <img src='./img/train_moved.jpg'> </a>
+		<div class="col-md-4 col-md-offset-1 center-text">
+			<img src='./img/train_moved.jpg'>
 		</div>
-		<div class="col-md-4 col-md-offset-1">
-			<a 
-			data-fancybox="crop"
-			data-caption="Cropped image"
-			href='./img/train_cropped.jpg'> <img src='./img/train_cropped.jpg'> </a>
+		<div class="col-md-4 col-md-offset-1 center-text">
+			<img src='./img/train_cropped.jpg'>
 		</div>
 	</div>
 	<div class="row"> <h4 class="page-header">Bells and Whistles 2 - Automatic Contrasting</h4>
 		<div class="col-md-12">
 		Automatic contrasting can make certain features in an image more distinguishable to the viewer, improving image quality. Too much contrast, howerver, produces an oddly colored image. In order to update the contrast of each image, I implemented the algorithm found <a href="http://www.dfstudios.co.uk/articles/programming/image-programming-algorithms/image-processing-algorithms-part-5-contrast-adjustment/" target="_blank"> here</a>. After messing around with various parameters, I decided that boosting contrast by +25 produced a decent result on all images in the input set. Below you can see the improvement on the gates image. 
 		</div>
-		<div class="col-md-4 col-md-offset-1">
-			<a
-			data-fancybox="contrast" 
-			data-caption="Original image"
-			href='./img/gates_cropped.jpg'> <img src='./img/gates_cropped.jpg'> </a>
+		<div class="col-md-4 col-md-offset-1 center-text">
+			<img src='./img/gates_cropped.jpg'>
 		</div>
-		<div class="col-md-4 col-md-offset-1">
-			<a 
-			data-fancybox="contrast"
-			data-caption="Contrast modified image"
-			href='./img/gates_colored.jpg'> <img src='./img/gates_colored.jpg'> </a>
+		<div class="col-md-4 col-md-offset-1 center-text">
+			<img src='./img/gates_colored.jpg'>
 		</div>
 	</div>
 	<div class="row"> <h4 class="page-header">Complete Gallery - all effects applied</h4>
-		<div class="col-md-12">
-
-        <a data-fancybox="gallery"
-        data-caption="green layer moved by (5, 2) pixels | red layer moved by (12, 3) pixels."
-        href="./img/cathedral_colored.jpg"><img src="./img/cathedral_colored.jpg" alt=""></a>
-
-        <a data-fancybox="gallery"
-        data-caption="green layer moved by (19, 18) pixels | and its red layer moved by (92, 30) pixels"
-        href="./img/gates_colored.jpg"><img src="./img/gates_colored.jpg" alt=""></a>
-
-        <a data-fancybox="gallery"
-        data-caption="green layer moved by (21, 20) pixels | and its red layer moved by (65, 35) pixels"
-        href="./img/gifts_colored.jpg"><img src="./img/gifts_colored.jpg" alt=""></a>
-
-        <a data-fancybox="gallery"
-        data-caption="green layer moved by (33, 7) pixels | and its red layer moved by (114, 14) pixels"
-        href="./img/group_colored.jpg"><img src="./img/group_colored.jpg" alt=""></a>
-
-        <a data-fancybox="gallery"
-        data-caption="green layer moved by (60, 16) pixels | and its red layer moved by (124, 13) pixels"
-        href="./img/harvesters_colored.jpg"><img src="./img/harvesters_colored.jpg" alt=""></a>
-
-        <a data-fancybox="gallery"
-        data-caption="green layer moved by (41, 19) pixels | and its red layer moved by (90, 25) pixels"
-        href="./img/icon_colored.jpg"><img src="./img/icon_colored.jpg" alt=""></a>
-
-        <a data-fancybox="gallery"
-        data-caption="green layer moved by (53, 4) pixels | and its red layer moved by (114, 5) pixels"
-        href="./img/lady_colored.jpg"><img src="./img/lady_colored.jpg" alt=""></a>
-
-        <a data-fancybox="gallery"
-        data-caption="green layer moved by (23, 16) pixels | and its red layer moved by (97, 27) pixels"
-        href="./img/Monastery_boat_colored.jpg"><img src="./img/Monastery_boat_colored.jpg" alt=""></a>
-
-        <a data-fancybox="gallery"
-        data-caption="green layer moved by (-3, 2) pixels | and its red layer moved by (3, 2) pixels"
-        href="./img/monastery_colored.jpg"><img src="./img/monastery_colored.jpg" alt=""></a>
-
-        <a data-fancybox="gallery"
-        data-caption="green layer moved by (3, 1) pixels | and its red layer moved by (8, 0) pixels"
-        href="./img/nativity_colored.jpg"><img src="./img/nativity_colored.jpg" alt=""></a>
-
-        <a data-fancybox="gallery"
-        data-caption="green layer moved by (48, 24) pixels | and its red layer moved by (117, 27) pixels"
-        href="./img/self_portrait_colored.jpg"><img src="./img/self_portrait_colored.jpg" alt=""></a>
-
-        <a data-fancybox="gallery"
-        data-caption="green layer moved by (7, 0) pixels | and its red layer moved by (15, -1) pixels"
-        href="./img/settlers_colored.jpg"><img src="./img/settlers_colored.jpg" alt=""></a>
-
-        <a data-fancybox="gallery"
-        data-caption="green layer moved by (49, 11) pixels | and its red layer moved by (106, 5) pixels"
-        href="./img/three_generations_colored.jpg"><img src="./img/three_generations_colored.jpg" alt=""></a>
-
-        <a data-fancybox="gallery"
-        data-caption="green layer moved by (35, 6) pixels | and its red layer moved by (70, 31) pixels"
-        href="./img/train_colored.jpg"><img src="./img/train_colored.jpg" alt=""></a>
-
-        <a data-fancybox="gallery"
-        data-caption="green layer moved by (58, 25) pixels | and its red layer moved by (120, 35) pixels"
-        href="./img/turkmen_colored.jpg"><img src="./img/turkmen_colored.jpg" alt=""></a>
-
-        <a data-fancybox="gallery"
-        data-caption="green layer moved by (65, 12) pixels | and its red layer moved by (139, 22) pixels"
-        href="./img/village_colored.jpg"><img src="./img/village_colored.jpg" alt=""></a>
-
-
+		<div class="col-md-12 center-text">
+	        <img src="./img/cathedral_colored.jpg" alt="">
+	        <img src="./img/gates_colored.jpg" alt="">
+	        <img src="./img/gifts_colored.jpg" alt="">
+	        <img src="./img/group_colored.jpg" alt="">
+	        <img src="./img/harvesters_colored.jpg" alt="">
+	        <img src="./img/icon_colored.jpg" alt="">
+	        <img src="./img/lady_colored.jpg" alt="">
+	        <img src="./img/Monastery_boat_colored.jpg" alt="">
+	        <img src="./img/monastery_colored.jpg" alt="">
+	        <img src="./img/nativity_colored.jpg" alt="">
+	        <img src="./img/self_portrait_colored.jpg" alt="">
+	        <img src="./img/settlers_colored.jpg" alt="">
+	        <img src="./img/three_generations_colored.jpg" alt="">
+	        <img src="./img/train_colored.jpg" alt="">
+	        <img src="./img/turkmen_colored.jpg" alt="">
+	        <img src="./img/village_colored.jpg" alt="">
 		</div>
 	</div>
 </div></div></div>
