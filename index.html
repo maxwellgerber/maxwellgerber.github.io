@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=0.86, maximum-scale=5.0, minimum-scale=0.86">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>How Many Croissants</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,21 +28,23 @@
             margin: 0;
         }
 
-        @media all and (orientation:portrait) {
+        @media all and (orientation: portrait) {
             h1 {
                 font-size: 8vh;
                 margin: 2vh;
             }
+
             h2 {
                 font-size: 3vh;
             }
         }
 
-        @media all and (orientation:landscape) {
+        @media all and (orientation: landscape) {
             h1 {
                 font-size: 20vh;
                 margin: 5vh;
             }
+
             h2 {
                 font-size: 12vh;
             }
@@ -58,13 +60,10 @@
         }
     </style>
     <script>
-      function rand(n) {
-        return Math.floor(Math.random() * n);
-      }
-
-      function id() {
-        return String(rand(10000));
-      }
+      const rand = (n) => Math.floor(Math.random() * n);
+      const id = () => String(rand(10000));
+      const weigh = (el, n) => Array(n).fill(el)
+      const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 
       function createKeyFrame(cssDeclaration) {
         const keyFrameId = `animation-${id()}`;
@@ -87,62 +86,44 @@
         return keyFrameId;
       }
 
-      const createRotateAnimation = (degrees) => createKeyFrame({
-        from: {
-          transform: `rotate(0)`
-        },
-        to: {
-          transform: `rotate(${degrees})`
-        }
-      });
-
-      const createTranslateYAnimation = (from, to) => createKeyFrame({
-        from: {
-          top: from,
-        },
-        to: {
-          top: to,
-        }
-      });
-
-      const createTranslateXAnimation = (from, to) => createKeyFrame({
-        from: {
-          left: from,
-        },
-        to: {
-          left: to,
-        }
-      });
-
-
       const rotateAnimations = [
-        '-360deg', '-300deg', '-240deg', '-180deg', '-120deg', '-60deg',
-        '60deg', '120deg', '180deg', '240deg', '300deg', '360deg'
-      ].map(createRotateAnimation);
+        '-1000deg', '-720deg', '-360deg', '-300deg', '-240deg', '-180deg', '-120deg', '-60deg',
+        '60deg', '120deg', '180deg', '240deg', '300deg', '360deg', '720deg', '1000deg', '2000deg'
+      ];
+
+      const NegativeYPositions = [
+        '-20vh', '-10vh','0vh',
+      ];
 
       const YPositions = [
-        '-200vh', '-40vh', '-20vh', '-10vh',
-        '0vh', '20vh', '30vh', '40vh', '50vh', '60vh', '70vh', '80vh', '100vh',
-        '110vh', '120vh', '130vh', '200vh',
+         '20vh', '30vh', '40vh', '50vh', '60vh', '70vh', '80vh', '90vh'
       ];
 
-      const translateYAnimations = YPositions.flatMap(yStart => {
-        return YPositions.map(yEnd => {
-          return createTranslateYAnimation(yStart, yEnd);
-        });
-      });
+      const PositiveYPositions = [
+        '100vh', '110vh', '120vh', '130vh', '200vh',
+      ];
 
-      const weigh = (el, n) => Array(n).fill(el)
+      const translateYAnimations = [
+        ...NegativeYPositions.flatMap(yStart => {
+          return YPositions.concat(PositiveYPositions).map(yEnd => [yStart, yEnd]);
+        }),
+        ...YPositions.slice(2).map(yStart => {
+          return NegativeYPositions.concat(YPositions).map(yEnd => [yStart, yEnd]);
+        }),
+        ...YPositions.slice(0, 6).map(yStart => {
+          return YPositions.concat(PositiveYPositions).map(yEnd => [yStart, yEnd]);
+        }),
+        ...PositiveYPositions.flatMap(yStart => {
+          return YPositions.slice(0, 7).concat(NegativeYPositions).map(yEnd => [yStart, yEnd]);
+        })
+      ];
 
       const translateXAnimations = [
-        ...weigh(createTranslateXAnimation('calc(0vw - 250px)', 'calc(100vw + 10px)'), 7),
-        ...weigh(createTranslateXAnimation('calc(-50vw - 250px)', 'calc(150vw + 10px)'), 4),
-        createTranslateXAnimation('calc(-100vw - 250px)', 'calc(200vw + 10px)'),
-        createTranslateXAnimation('calc(-200vw - 250px)', 'calc(300vw + 10px)'),
+        ...weigh(['calc(0vw - 250px)', 'calc(100vw + 250px)'], 7),
+        ...weigh(['calc(-50vw - 250px)', 'calc(150vw + 250px)'], 4),
+        ['calc(-100vw - 250px)', 'calc(200vw + 250px)'],
+        ['calc(-200vw - 250px)', 'calc(300vw + 250px)'],
       ];
-
-
-      const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 
       const images = [
         'https://cdn-icons-png.flaticon.com/512/3187/3187458.png',
@@ -150,21 +131,32 @@
         'https://icons.veryicon.com/png/o/food--drinks/coffee-related/croissant-20.png',
         'https://images.vexels.com/media/users/3/177415/isolated/preview/87a7963dcc4ef36dfdb64006046b7b85-croissant-bagel-sketch.png',
         'https://www.clipartmax.com/png/full/107-1077339_croissant-croissant-france-png.png'
-      ]
-
+      ];
 
       function dropTheCroissant() {
         const el = document.createElement('img');
         el.src = pick(images);
         el.style.width = `${80 + rand(150)}px`;
         el.style.position = 'absolute';
-        el.style.left = `-500px`;
+        el.style.left = `-250px`;
+        el.style.top = `0`;
 
-        el.style.animationName = [pick(translateXAnimations), pick(rotateAnimations), pick(translateYAnimations)].join(', ');
-        el.style.animationDuration = '4s, 4s, 4s';
+        const rotateAngle = pick(rotateAnimations);
+        const [xStart, xEnd] = pick(translateXAnimations);
+        const [yStart, yEnd] = pick(translateYAnimations);
+
+        el.style.animationName = createKeyFrame({
+          from: {
+            transform: `translateY(${yStart}) translateX(${xStart}) rotate(0)`
+          },
+          to: {
+            transform: `translateY(${yEnd}) translateX(${xEnd}) rotate(${rotateAngle})`
+          }
+        });
+        el.style.animationDuration = '4s';
         el.style.animationIterationCount = 'infinite';
-        el.style.animationTimingFunction = 'linear, linear, linear';
-        el.style.animationDelay = `${rand(3000)}ms`;
+        el.style.animationTimingFunction = 'linear';
+        el.style.animationDelay = `${rand(4200)}ms`;
         document.body.append(el);
       }
 
