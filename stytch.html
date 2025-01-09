@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stytch HTTPOnly Test</title>
+    <script type="module">
+      import {StytchHeadlessClient} from "./js/stytch.esm.js";
+
+      const client = new StytchHeadlessClient("public-token-live-3516e140-fd20-42a0-ae03-7d641db604df")
+
+      document.getElementById("login").onclick = () => {
+        client.passwords.create({
+          email: `max+${(Math.random() + 1).toString(36).substring(7)}@stytch.com`,
+          password: 'ZXCVBNsucks!' + (Math.random() + 1).toString(36).substring(7),
+          session_duration_minutes: 60
+        })
+      }
+
+      document.getElementById("logout").onclick = () => {
+        client.session.revoke();
+      }
+
+      client.onStateChange((diff) => {
+        document.getElementById("loginstatus").innerText = JSON.stringify(diff)
+      })
+
+      window.stytch = client;
+    </script>
+</head>
+<body>
+<h1>Stytch HTTPOnly Single Page Test</h1>
+
+<button id="login">Login</button>
+<button id="logout">Logout</button>
+
+<p>Logged in? <code id="loginstatus"></code></p>
+
+
+</body>
+</html>
