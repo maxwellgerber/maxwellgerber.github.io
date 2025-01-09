@@ -6,7 +6,11 @@
     <script type="module">
       import {StytchHeadlessClient} from "./js/stytch.esm.js";
 
-      const client = new StytchHeadlessClient("public-token-live-ecb6a1b5-ce12-4291-aa38-acabf0565fa1")
+      const client = new StytchHeadlessClient("public-token-live-ecb6a1b5-ce12-4291-aa38-acabf0565fa1", {
+        endpointOptions: {
+          apiDomain: 'https://api.stytch.maxgerber.com',
+        }
+      })
 
       document.getElementById("login").onclick = () => {
         client.passwords.create({
