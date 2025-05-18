@@ -1,0 +1,27 @@
+body {
+    font-family: 'Roboto', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.container {
+    width: 100%;
+    max-width: 64rem;
+    min-width: 64rem;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+img {
+    border-radius: 2rem;
+}
+
+a {
+    color: #6082B6; /* A softer color for links */
+    text-decoration: none; /* Remove underline, if needed */
+}
+
+a:visited {
+    color: #6082B6; /* Ensures visited links do not change color */
+}
