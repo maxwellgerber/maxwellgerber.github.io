@@ -1,0 +1,115 @@
+function dropTheCroissant() {
+    function rand(n) {
+        return Math.floor(Math.random() * n);
+    }
+
+    function id() {
+        return String(rand(10000));
+    }
+
+    function createKeyFrame(cssDeclaration) {
+        const keyFrameId = `animation-${id()}`;
+
+        let frame = `@keyframes ${keyFrameId} {\n`
+
+        Object.entries(cssDeclaration).forEach(([key, props]) => {
+            frame += `\t${key} {\n`
+            Object.entries(props).forEach(([propName, propValue]) => {
+                frame += `\t\t${propName}: ${propValue};\n`
+            });
+            frame += `\t}`
+        })
+        frame += `}`;
+
+        const style = document.createElement('style');
+        style.innerHTML = frame
+        document.getElementsByTagName('head')[0].appendChild(style);
+
+        return keyFrameId;
+    }
+
+    const createRotateAnimation = (degrees) => createKeyFrame({
+        from: {
+            transform: `rotate(0)`
+        },
+        to: {
+            transform: `rotate(${degrees})`
+        }
+    });
+
+    const createTranslateYAnimation = (from, to) => createKeyFrame({
+        from: {
+            top: from,
+        },
+        to: {
+            top: to,
+        }
+    });
+
+    const createTranslateXAnimation = (from, to) => createKeyFrame({
+        from: {
+            left: from,
+        },
+        to: {
+            left: to,
+        }
+    });
+
+
+    const rotateAnimations = [
+        '-360deg', '-300deg', '-240deg', '-180deg', '-120deg', '-60deg',
+        '60deg', '120deg', '180deg', '240deg', '300deg', '360deg'
+    ].map(createRotateAnimation);
+
+    const YPositions = [
+        '-200vh', '-40vh', '-20vh', '-10vh',
+        '0vh', '20vh', '30vh', '40vh', '50vh', '60vh', '70vh', '80vh', '100vh',
+        '110vh', '120vh', '130vh', '200vh',
+    ];
+
+    const translateYAnimations = YPositions.flatMap(yStart => {
+        return YPositions.map(yEnd => {
+            return createTranslateYAnimation(yStart, yEnd);
+        });
+    });
+
+    const weigh = (el, n) => Array(n).fill(el)
+
+    const translateXAnimations = [
+        ...weigh(createTranslateXAnimation('calc(0vw - 250px)', 'calc(100vw + 10px)'), 7),
+        ...weigh(createTranslateXAnimation('calc(-50vw - 250px)', 'calc(150vw + 10px)'), 4),
+        createTranslateXAnimation('calc(-100vw - 250px)', 'calc(200vw + 10px)'),
+        createTranslateXAnimation('calc(-200vw - 250px)', 'calc(300vw + 10px)'),
+    ];
+
+
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+    const images = [
+        'https://cdn-icons-png.flaticon.com/512/3187/3187458.png',
+        'https://icons.veryicon.com/png/o/food--drinks/sweet-dessert-icon/croissant-18.png',
+        'https://icons.veryicon.com/png/o/food--drinks/coffee-related/croissant-20.png',
+        'https://images.vexels.com/media/users/3/177415/isolated/preview/87a7963dcc4ef36dfdb64006046b7b85-croissant-bagel-sketch.png',
+        'https://www.clipartmax.com/png/full/107-1077339_croissant-croissant-france-png.png'
+    ]
+
+    for(let i = 0; i < 50; i++) {
+        const el = document.createElement('img');
+        el.src = pick(images);
+        el.style.width = `${80 + rand(150)}px`;
+        el.style.position = 'absolute';
+        el.style.left = `-500px`;
+
+        el.style.animationName = [pick(translateXAnimations), pick(rotateAnimations), pick(translateYAnimations)].join(', ');
+        el.style.animationDuration = '4s, 4s, 4s';
+        el.style.animationIterationCount = 'infinite';
+        el.style.animationTimingFunction = 'linear, linear, linear';
+        el.style.animationDelay = `${rand(3000)}ms`;
+        document.body.append(el);
+    }
+}
+
+
+export default function Croissant({children}) {
+    return <a href="#" onClick={dropTheCroissant}>{children}</a>
+}
