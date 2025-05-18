@@ -15,7 +15,8 @@
     "next": "latest",
     "react": "latest",
     "react-code-blocks": "^0.1.6",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "rehype-slug": "^6.0.0"
   },
   "devDependencies": {
     "@types/node": "22.15.18",

@@ -1,3 +1,60 @@
 # Why PKCE Is My Favorite OAuth Standard
 
-TODO!
+<hr/>
+
+[Proof Key for Code Exchange (PKCE)](https://datatracker.ietf.org/doc/html/rfc7636) - pronounced "pixy" 🧚 -
+is my favorite OAuth standard. It is short, sweet, and solves an important problem in an interesting way.
+When I am introducing new developers to OAuth, I recommend they read the PKCE RFC first before diving into others -
+like starting with "Of Mice and Men" before opening up "Moby Dick".
+
+## Pee Kay Cee Eee? What?
+
+PKCE  is an extension to the original OAuth standard.
+
+OAuth 2.0 was not originally designed with secure public clients (like mobile or single-page apps) in mind.
+In traditional authorization code flows, the client secret is a required part of the token exchange—but public clients can’t store secrets safely.
+This made the flow susceptible to interception attacks, especially in environments where the authorization code could be leaked.
+
+During a public client flow, if an attacker gets access to an authorization code
+(for example, see the mess that is [mobile deep linking](https://reactnative.dev/docs/security#authentication-and-deep-linking))
+then the attacker can exchange that code themselves. Bad!
+
+PKCE fixes this attack by **cryptographically proving that the caller that starts the OAuth flow is the same caller that completes it**.
+This is done by introducing a new `code_verifier` parameter:
+
+1. The client generates a cryptographically random `code_verifier` and stores it locally
+1. The client computes the `SHA256` hash of the `code_verifier` to generate a `code_challenge`.
+1. The client passes the `code_challenge` to the server as part of the standard OAuth Authorization Request, e.g. `example.com/oauth2/authorize?client_id=...&code_challenge=...`.
+1. The server records the `code_challenge` and proceeds with the standard OAuth flow, eventually redirecting back to the client with a `?code=...`.
+1. The client sends the server the saved `code_verifier` in the request to exchange the `code` for an access token
+1. The sever computes the `SHA256` hash of the `code_verifier` itself
+    - If the hash matches the saved `code_challenge`, then the server knows that the client is the same one who initiated the flow and no interception occured
+    - If the hash does not match, the server fails the request
+
+There are some other bits and pieces around code challenge methods and URL encoding, but that's pretty much the entire spec.
+
+## Top Tier Security API
+
+Unlike many other parts of OAuth, PKCE is designed such that it is impossible to skirt around.
+Compare this with something like the `nonce` in OpenID Connect, which clients are expected to validate locally.
+If a client forgets or skips validation, the flow still completes. But with PKCE, the server itself enforces the check.
+You can’t fake PKCE. You either follow the spec or you fail.
+
+As a bonus, PKCE protects against [Login CSRF](https://support.detectify.com/support/solutions/articles/48001048951-login-csrf) attacks too.
+Attackers can't trick an unsuspecting user to click a link and log in to the wrong account because the user won't have the correct `code_verifier`.
+
+## PKCE All The Things
+
+PKCE started out as a specific extension for mobile applications, but is now generally recommended for
+[all OAuth applications](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-12#section-7.5.2-6).
+Talk about a glow up!
+
+PKCE doesn't need to limit itself to OAuth either! Any system that involves HTTP redirects and callbacks can make use of PKCE.
+For example, magic links! Magic link flows generally involve a user requesting a login link from a website, and then opening that link from their email.
+The link in the email redirects the user back to the website with a token that can be verified.
+Want to prevent users from forwarding magic links to friends and family? Or stop E-mail scanners from clicking on links and messing things up?
+Add PKCE to the flow and only the device that initiated the magic link flow will be able to authenticate the token.
+
+**Note:** PKCE magic links don't work well when using mobile application WebViews -
+when users click the link from their email, the link is opened in a default browser that doesn't have access to the code verifier.
+Mobile-focused magic links need to be deeplinks or [universal links](https://developer.apple.com/documentation/xcode/allowing-apps-and-websites-to-link-to-your-content/) to work well.

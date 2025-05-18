@@ -3,7 +3,7 @@ import styles from './codeblock.module.css'
 
 export function Codeblock({children, className}) {
     if(!children.includes('\n')) {
-        return <code>{children}</code>
+        return <code className={styles.inline}>{children}</code>
     }
     className = className || 'language-javascript';
     return (
