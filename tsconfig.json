@@ -20,7 +20,8 @@
     "baseUrl": ".",
     "paths": {
       "@/markdown/*": ["./markdown/*"],
-      "@/components/*": ["./components/*"]
+      "@/components/*": ["./components/*"],
+      "@/data/*": ["./data/*"]
     }
   },
   "include": [

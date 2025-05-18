@@ -24,3 +24,13 @@ a {
 a:visited {
     color: #6082B6; /* Ensures visited links do not change color */
 }
+
+.croissant-container {
+    position: fixed;     /* Fixed position relative to viewport */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none; /* Allows clicking through the container */
+    z-index: 1;          /* Adjust as needed */
+}
