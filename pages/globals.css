@@ -12,10 +12,6 @@ body {
     margin: 0 auto;
 }
 
-img {
-    border-radius: 2rem;
-}
-
 a {
     color: #6082B6; /* A softer color for links */
     text-decoration: none; /* Remove underline, if needed */
@@ -33,4 +29,13 @@ a:visited {
     bottom: 0;
     pointer-events: none; /* Allows clicking through the container */
     z-index: 1;          /* Adjust as needed */
+}
+
+blockquote {
+    margin: 1em 0;
+    padding-left: 1em;
+    border-left: 0.25em solid #d0d7de; /* GitHub uses a subtle gray */
+    color: #59636e;
+    font-size: 0.95em;
+    line-height: 1.5;
 }

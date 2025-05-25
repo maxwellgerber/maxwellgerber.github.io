@@ -1,0 +1,154 @@
+import {RunnableCodeBlock} from '@/components/RunnableCodeBlock';
+import {ClearCookiesOnLoad} from '@/components/blog/cookie-shadowing/ClearCookiesOnLoad';
+
+Most of us think of cookies as a key-value store. Each cookie has a name and a value, and they fit really nicely into
+a `Record<string, string>` or `map[string]string` or whatever your preferred notation is.
+Unfortunately, this mental model doesn't hold up to reality - **multiple cookies can have the same name**.
+This is not a bug—it's how the HTTP specification works, but it can get _pretty weird_.
+
+### Spec Time
+
+The HTTP cookie spec [(RFC 6265)](https://datatracker.ietf.org/doc/html/rfc6265) says cookies are uniquely identified by their **name**, **domain**, and **path** combined.
+That means you can have multiple cookies with the same name, as long as they have different domains or paths.
+The specific verbiage can be found in [Section 5.3](https://datatracker.ietf.org/doc/html/rfc6265#section-5.3):
+
+> If the cookie store contains a cookie with the same name, domain, and path as the newly created cookie.
+Let old-cookie be the existing cookie with the same name, domain, and path as the newly created cookie
+... Remove the old-cookie from the cookie store.
+
+I've never really ran into path-scoped cookies professionally, but I assume they're out there somewhere.
+Domain-scoped cookies are much more common, and they are a nice feature.
+
+For example, it is _incredibly_ common in SaaS to have your actual product dashboard hosted separately from the company's marketing site.
+Product dashboard goes on `app.example.com`, marketing site goes on `example.com`, and this way Marketing can install a
+billion tools on the marketing site without Engineering needing to worry too much.
+
+Cookies set with an explicit domain of `example.com` will be available to both `app.example.com` and `example.com`, allowing the separate sites to communicate
+some shared state. Cookies set without an explicit domain will only be available on the domain they are set at - so the session token set on `app.example.com`
+won't be available for the marketing site to accidentally leak in some way.
+
+Suppose a developer makes a change to their product. Previously a cookie was only available on `example.com`, but now
+the developer wants to share that cookie with `app.example.com`.
+The developer sets the `domain` attribute on the cookie, deploys their code, and will discover that _both cookies_ will continue to exist.
+And the order in which they get serialized to Javascript via `document.cookie` or to a backend service via the `Cookie` header is pretty much a coinflip.
+
+### Demos Demos Demos Demos
+
+Let's create a few cookies using Javascript and see what happens:
+
+**Basic cookie (no attributes):**
+
+<RunnableCodeBlock>{`
+document.cookie = "my_cool_cookie=basic";
+console.log("document.cookie:", document.cookie);
+`}</RunnableCodeBlock>
+
+**Path-specific cookie:**
+
+<RunnableCodeBlock>{`
+document.cookie = "my_cool_cookie=path_specific; path=/blog/cookie-shadowing";
+console.log("document.cookie:", document.cookie);
+`}</RunnableCodeBlock>
+
+**Domain-specific cookie:**
+
+<RunnableCodeBlock>{`
+document.cookie = \`my_cool_cookie=domain_specific; domain=\${window.location.hostname}\`;
+console.log("document.cookie:", document.cookie);
+`}</RunnableCodeBlock>
+
+**Path and Domain-specific cookie:**
+
+<RunnableCodeBlock>{`
+document.cookie = \`my_cool_cookie=very_specific; domain=\${window.location.hostname}; path=/blog/cookie-shadowing\`;
+console.log("document.cookie:", document.cookie);
+`}</RunnableCodeBlock>
+
+Great! You should now have multiple separate entries in `document.cookie` with the same cookie name and distinct cookie values. Pop open Dev Tools too, and you'll be able to see the same thing.
+
+### Cookie Cleanup Time
+
+Cookies are typically deleted by setting an empty string as the value, and by setting the expiry to be sometime in the past.
+This means we can't delete these cookies unless we exactly match the name, domain, and path components used when the cookie was initially created.
+
+**Clear basic cookie:**
+
+<RunnableCodeBlock>{`
+// Clear only the basic cookie (no attributes)
+document.cookie = "my_cool_cookie=; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+console.log("document.cookie:", document.cookie);
+`}</RunnableCodeBlock>
+
+**Clear ALL the cookies:**
+
+<RunnableCodeBlock>{`
+document.cookie = \`my_cool_cookie=; const expireDate = "Thu, 01 Jan 1970 00:00:00 GMT"\`;
+document.cookie = \`my_cool_cookie=; path=/blog/cookie-shadowing; expires=Thu, 01 Jan 1970 00:00:00 GMT\`;
+document.cookie = \`my_cool_cookie=; domain=\${window.location.hostname}; expires=Thu, 01 Jan 1970 00:00:00 GMT\`;
+document.cookie = \`my_cool_cookie=; partitioned; secure; samesite=none; expires=Thu, 01 Jan 1970 00:00:00 GMT\`;
+console.log("document.cookie:", document.cookie || 'None!');
+`}</RunnableCodeBlock>
+
+### The Right Way
+
+Now, this is moderately annoying - but there is some good news. There's a new-ish API called the
+[cookieStore](https://developer.mozilla.org/en-US/docs/Web/API/CookieStore) that returns cookie information as a rich object
+so all the domain and path metadata is preserved. This can be used to inspect cookies from application code, in case you
+are struggling to figure out why some cookie is keeping itself around.
+
+<RunnableCodeBlock>{`
+document.cookie = "my_cool_cookie=basic;";
+document.cookie = "my_cool_cookie=path_specific; path=/blog/cookie-shadowing;";
+let allCookies = await cookieStore.getAll();
+console.log('All cookies:', JSON.stringify(allCookies, null, 2));
+`}</RunnableCodeBlock>
+
+This feature isn't supported in all browsers yet, but Someday™️!
+
+## The Cookie Crumbles Serverside
+
+We have some problems on the web side, but we also have the tools to deal with those problems.
+Things aren't so great on the server, though:
+
+### Browsers will _happily_ send two cookies of the same name in a web request
+
+Tested in Chrome `136.0.7103.114`. Others have tested in [all major browsers](https://github.com/js-cookie/js-cookie/issues/813#issuecomment-1567412628).
+
+<img
+  src="/cookie_devtools.png"
+  style={{width: "65vw"}}
+  alt="Screenshot of Google Chrome devtools showing two cookies with the same name being sent"
+/>
+
+### Nearly every major cookie parsing library fails to deal with multiple cookies of the same name.
+
+Nearly every major library for parsing or interacting with cookies that I have interacted with exposes cookies
+to userland as a key-value store.
+
+- [Express.js cookieParser](https://github.com/expressjs/cookie-parser/blob/master/index.js#L103)
+- [Django](https://github.com/django/django/blob/main/django/http/cookie.py#L7)
+- [NextJS](https://github.com/vercel/edge-runtime/blob/main/packages/cookies/src/serialize.ts#L28)
+- Lavarel / Symphony / PHP stores cookies as an associative array, though for the life of me I can't find the source code.
+
+The only package I've seen do things _right_ is the [Go stdlib](https://pkg.go.dev/net/http#Request.CookiesNamed), which returns an array of cookies matching the given name.
+Unless you call the _other_ [cookie method](https://pkg.go.dev/net/http#Request.Cookie) defined on the request object, which will only return the first match.
+
+And of course - even if you do inspect the `Cookie` HTTP header yourself and find two cookies with the same name,
+what can you realistically do? **There is no equivalent `cookieStore` API for serverside code.**
+This means that:
+- For `HTTPOnly` cookies there is no mechanism for application code to determine how the cookie was initially set.
+- Your backend won't be able to differentiate which of the two cookies is the 'correct' one.
+
+
+## Takeaways
+
+This isn't really an issue for 99% developers because it is _incredibly rare_ for some other code to
+be setting a cookie on your website and for you to not know about it.
+The only time cookie shadowing should realistically happen is if you
+migrate from sharing a cookie with subdomains to not sharing it, or vice versa. In both of those cases, you should know
+exactly how the cookie was set previously anyway.
+
+However, if you write a library or an [SDK](https://stytch.com/docs/sdks) that interacts with cookies on hundreds of websites,
+you'll eventually run into someone doing something very weird.
+
+<ClearCookiesOnLoad/>
