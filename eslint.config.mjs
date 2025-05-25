@@ -5,6 +5,9 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  {
+    ignores: ['.idea/**', '.next/**', 'node_modules/**', '.claude/**', 'CLAUDE.md', 'out/**'],
+  },
   ...compat.config({
     extends: ['next', 'next/typescript', 'prettier'],
   }),

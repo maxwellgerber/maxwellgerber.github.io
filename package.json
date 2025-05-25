@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "prepare": "husky"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.0",
@@ -23,6 +24,7 @@
     "@types/node": "22.15.18",
     "eslint-config-next": "15.4.0-canary.51",
     "eslint-config-prettier": "^10.1.5",
+    "husky": "^9.1.7",
     "prettier": "^3.5.3",
     "typescript": "5.8.3"
   }
