@@ -1,41 +1,41 @@
 body {
-    font-family: 'Roboto', sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1.2;
+  font-family: 'Roboto', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
 }
 
 .container {
-    width: 100%;
-    max-width: 64rem;
-    margin: 0 auto;
+  width: 100%;
+  max-width: 64rem;
+  margin: 0 auto;
 }
 
 a {
-    color: #6082B6; /* A softer color for links */
-    text-decoration: none; /* Remove underline, if needed */
+  color: #6082b6; /* A softer color for links */
+  text-decoration: none; /* Remove underline, if needed */
 }
 
 a:visited {
-    color: #6082B6; /* Ensures visited links do not change color */
+  color: #6082b6; /* Ensures visited links do not change color */
 }
 
 .croissant-container {
-    position: fixed;     /* Fixed position relative to viewport */
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    pointer-events: none; /* Allows clicking through the container */
-    z-index: 1;          /* Adjust as needed */
+  position: fixed; /* Fixed position relative to viewport */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none; /* Allows clicking through the container */
+  z-index: 1; /* Adjust as needed */
 }
 
 blockquote {
-    margin: 1em 0;
-    padding-left: 1em;
-    border-left: 0.25em solid #d0d7de; /* GitHub uses a subtle gray */
-    color: #59636e;
-    font-size: 0.95em;
-    line-height: 1.5;
+  margin: 1em 0;
+  padding-left: 1em;
+  border-left: 0.25em solid #d0d7de; /* GitHub uses a subtle gray */
+  color: #59636e;
+  font-size: 0.95em;
+  line-height: 1.5;
 }

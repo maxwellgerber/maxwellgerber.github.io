@@ -1,5 +1,5 @@
-import {RunnableCodeBlock} from '@/components/RunnableCodeBlock';
-import {ClearCookiesOnLoad} from '@/components/blog/cookie-shadowing/ClearCookiesOnLoad';
+import { RunnableCodeBlock } from '@/components/RunnableCodeBlock/RunnableCodeBlock';
+import { ClearCookiesOnLoad } from '@/components/blog/cookie-shadowing/ClearCookiesOnLoad';
 
 Most of us think of cookies as a key-value store. Each cookie has a name and a value, and they fit really nicely into
 a `Record<string, string>` or `map[string]string` or whatever your preferred notation is.
@@ -13,8 +13,8 @@ That means you can have multiple cookies with the same name, as long as they hav
 The specific verbiage can be found in [Section 5.3](https://datatracker.ietf.org/doc/html/rfc6265#section-5.3):
 
 > If the cookie store contains a cookie with the same name, domain, and path as the newly created cookie.
-Let old-cookie be the existing cookie with the same name, domain, and path as the newly created cookie
-... Remove the old-cookie from the cookie store.
+> Let old-cookie be the existing cookie with the same name, domain, and path as the newly created cookie
+> ... Remove the old-cookie from the cookie store.
 
 I've never really ran into path-scoped cookies professionally, but I assume they're out there somewhere.
 Domain-scoped cookies are much more common, and they are a nice feature.
@@ -115,9 +115,9 @@ Things aren't so great on the server, though:
 Tested in Chrome `136.0.7103.114`. Others have tested in [all major browsers](https://github.com/js-cookie/js-cookie/issues/813#issuecomment-1567412628).
 
 <img
-  src="/cookie_devtools.png"
-  style={{width: "65vw"}}
-  alt="Screenshot of Google Chrome devtools showing two cookies with the same name being sent"
+  src='/cookie_devtools.png'
+  style={{ width: '65vw' }}
+  alt='Screenshot of Google Chrome devtools showing two cookies with the same name being sent'
 />
 
 ### Nearly every major cookie parsing library fails to deal with multiple cookies of the same name.
@@ -136,9 +136,9 @@ Unless you call the _other_ [cookie method](https://pkg.go.dev/net/http#Request.
 And of course - even if you do inspect the `Cookie` HTTP header yourself and find two cookies with the same name,
 what can you realistically do? **There is no equivalent `cookieStore` API for serverside code.**
 This means that:
+
 - For `HTTPOnly` cookies there is no mechanism for application code to determine how the cookie was initially set.
 - Your backend won't be able to differentiate which of the two cookies is the 'correct' one.
-
 
 ## Takeaways
 
@@ -151,4 +151,4 @@ exactly how the cookie was set previously anyway.
 However, if you write a library or an [SDK](https://stytch.com/docs/sdks) that interacts with cookies on hundreds of websites,
 you'll eventually run into someone doing something very weird.
 
-<ClearCookiesOnLoad/>
+<ClearCookiesOnLoad />

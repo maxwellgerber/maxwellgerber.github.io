@@ -1,0 +1,14 @@
+.codeblock {
+  border: 1px solid hsl(0, 0%, 80%);
+  border-radius: 2px;
+  width: 100%;
+}
+
+.inline {
+  padding: 0.2em 0.4em;
+  margin: 0;
+  font-size: 85%;
+  white-space: break-spaces;
+  background-color: hsl(0, 0%, 93%);
+  border-radius: 6px;
+}

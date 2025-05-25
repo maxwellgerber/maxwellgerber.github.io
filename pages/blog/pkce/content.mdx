@@ -5,7 +5,7 @@ like starting with "Of Mice and Men" before opening up "Moby Dick".
 
 ## Pee Kay Cee Eee? What?
 
-PKCE  is an extension to the original OAuth standard.
+PKCE is an extension to the original OAuth standard.
 
 OAuth 2.0 was not originally designed with secure public clients (like mobile or single-page apps) in mind.
 In traditional authorization code flows, the client secret is a required part of the token exchange—but public clients can’t store secrets safely.
@@ -24,8 +24,8 @@ This is done by introducing a new `code_verifier` parameter:
 1. The server records the `code_challenge` and proceeds with the standard OAuth flow, eventually redirecting back to the client with a `?code=...`.
 1. The client sends the server the saved `code_verifier` in the request to exchange the `code` for an access token
 1. The sever computes the `SHA256` hash of the `code_verifier` itself
-    - If the hash matches the saved `code_challenge`, then the server knows that the client is the same one who initiated the flow and no interception occured
-    - If the hash does not match, the server fails the request
+   - If the hash matches the saved `code_challenge`, then the server knows that the client is the same one who initiated the flow and no interception occured
+   - If the hash does not match, the server fails the request
 
 There are some other bits and pieces around code challenge methods and URL encoding, but that's pretty much the entire spec.
 

@@ -21,6 +21,9 @@
   },
   "devDependencies": {
     "@types/node": "22.15.18",
+    "eslint-config-next": "15.4.0-canary.51",
+    "eslint-config-prettier": "^10.1.5",
+    "prettier": "^3.5.3",
     "typescript": "5.8.3"
   }
 }
