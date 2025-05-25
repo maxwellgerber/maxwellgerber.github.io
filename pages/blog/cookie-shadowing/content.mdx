@@ -82,10 +82,10 @@ console.log("document.cookie:", document.cookie);
 **Clear ALL the cookies:**
 
 <RunnableCodeBlock>{`
-document.cookie = \`my_cool_cookie=; const expireDate = "Thu, 01 Jan 1970 00:00:00 GMT"\`;
+document.cookie = \`my_cool_cookie=; expires="Thu, 01 Jan 1970 00:00:00 GMT"\`;
 document.cookie = \`my_cool_cookie=; path=/blog/cookie-shadowing; expires=Thu, 01 Jan 1970 00:00:00 GMT\`;
 document.cookie = \`my_cool_cookie=; domain=\${window.location.hostname}; expires=Thu, 01 Jan 1970 00:00:00 GMT\`;
-document.cookie = \`my_cool_cookie=; partitioned; secure; samesite=none; expires=Thu, 01 Jan 1970 00:00:00 GMT\`;
+document.cookie = \`my_cool_cookie=; domain=\${window.location.hostname}; path=/blog/cookie-shadowing; expires=Thu, 01 Jan 1970 00:00:00 GMT\`;
 console.log("document.cookie:", document.cookie || 'None!');
 `}</RunnableCodeBlock>
 

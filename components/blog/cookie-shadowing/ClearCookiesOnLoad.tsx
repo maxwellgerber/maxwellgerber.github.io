@@ -7,7 +7,7 @@ export function ClearCookiesOnLoad() {
         document.cookie = `my_cool_cookie=; expires=${expireDate}`;
         document.cookie = `my_cool_cookie=; path=/blog/cookie-shadowing; expires=${expireDate}`;
         document.cookie = `my_cool_cookie=; domain=${window.location.hostname}; expires=${expireDate}`;
-        document.cookie = `my_cool_cookie=; partitioned; secure; samesite=none; expires=${expireDate}`;
+        document.cookie = `my_cool_cookie=; path=/blog/cookie-shadowing; domain=${window.location.hostname}; expires=${expireDate}`;
     }, []);
     return null; // This component doesn't render anything
 }
