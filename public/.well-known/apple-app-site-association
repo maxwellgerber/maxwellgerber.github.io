@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "TEAMID.com.electron.electron-oauth-example"
+        ],
+        "components": [
+          {
+            "/": "/oauth/callback",
+            "comment": "OAuth callback for Electron app"
+          }
+        ]
+      }
+    ]
+  }
+}
