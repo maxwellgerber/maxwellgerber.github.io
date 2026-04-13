@@ -1,16 +1,12 @@
-import { FlatCompat } from '@eslint/eslintrc';
-
-const compat = new FlatCompat({
-  baseDirectory: import.meta.dirname,
-});
+import nextConfig from 'eslint-config-next/typescript';
+import prettierConfig from 'eslint-config-prettier';
 
 const eslintConfig = [
   {
     ignores: ['.idea/**', '.next/**', 'node_modules/**', '.claude/**', 'CLAUDE.md', 'out/**'],
   },
-  ...compat.config({
-    extends: ['next', 'next/typescript', 'prettier'],
-  }),
+  ...nextConfig,
+  prettierConfig,
 ];
 
 export default eslintConfig;
