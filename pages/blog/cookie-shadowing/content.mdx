@@ -16,7 +16,7 @@ The specific verbiage can be found in [Section 5.3](https://datatracker.ietf.org
 > Let old-cookie be the existing cookie with the same name, domain, and path as the newly created cookie
 > ... Remove the old-cookie from the cookie store.
 
-I've never really ran into path-scoped cookies professionally, but I assume they're out there somewhere.
+I've never really run into path-scoped cookies professionally, but I assume they're out there somewhere.
 Domain-scoped cookies are much more common, and they are a nice feature.
 
 For example, it is _incredibly_ common in SaaS to have your actual product dashboard hosted separately from the company's marketing site.
@@ -30,11 +30,11 @@ won't be available for the marketing site to accidentally leak in some way.
 Suppose a developer makes a change to their product. Previously a cookie was only available on `example.com`, but now
 the developer wants to share that cookie with `app.example.com`.
 The developer sets the `domain` attribute on the cookie, deploys their code, and will discover that _both cookies_ will continue to exist.
-And the order in which they get serialized to Javascript via `document.cookie` or to a backend service via the `Cookie` header is pretty much a coinflip.
+And the order in which they get serialized to JavaScript via `document.cookie` or to a backend service via the `Cookie` header is pretty much a coinflip.
 
 ### Demos Demos Demos Demos
 
-Let's create a few cookies using Javascript and see what happens:
+Let's create a few cookies using JavaScript and see what happens:
 
 **Basic cookie (no attributes):**
 
@@ -127,8 +127,8 @@ to userland as a key-value store.
 
 - [Express.js cookieParser](https://github.com/expressjs/cookie-parser/blob/master/index.js#L103)
 - [Django](https://github.com/django/django/blob/main/django/http/cookie.py#L7)
-- [NextJS](https://github.com/vercel/edge-runtime/blob/main/packages/cookies/src/serialize.ts#L28)
-- Lavarel / Symphony / PHP stores cookies as an associative array, though for the life of me I can't find the source code.
+- [Next.js](https://github.com/vercel/edge-runtime/blob/main/packages/cookies/src/serialize.ts#L28)
+- Laravel / Symfony / PHP stores cookies as an associative array, though for the life of me I can't find the source code.
 
 The only package I've seen do things _right_ is the [Go stdlib](https://pkg.go.dev/net/http#Request.CookiesNamed), which returns an array of cookies matching the given name.
 Unless you call the _other_ [cookie method](https://pkg.go.dev/net/http#Request.Cookie) defined on the request object, which will only return the first match.
@@ -142,7 +142,7 @@ This means that:
 
 ## Takeaways
 
-This isn't really an issue for 99% developers because it is _incredibly rare_ for some other code to
+This isn't really an issue for 99% of developers because it is _incredibly rare_ for some other code to
 be setting a cookie on your website and for you to not know about it.
 The only time cookie shadowing should realistically happen is if you
 migrate from sharing a cookie with subdomains to not sharing it, or vice versa. In both of those cases, you should know
