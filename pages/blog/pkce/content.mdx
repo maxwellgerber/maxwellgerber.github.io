@@ -1,3 +1,5 @@
+import { RunnableCodeBlock } from '@/components/RunnableCodeBlock/RunnableCodeBlock';
+
 [Proof Key for Code Exchange (PKCE)](https://datatracker.ietf.org/doc/html/rfc7636) - pronounced "pixy" 🧚 -
 is my favorite OAuth standard. It is short, sweet, and solves an important problem in an interesting way.
 When I am introducing new developers to OAuth, I recommend they read the PKCE RFC first before diving into others -
@@ -18,16 +20,58 @@ then the attacker can exchange that code themselves. Bad!
 PKCE fixes this attack by **cryptographically proving that the caller that starts the OAuth flow is the same caller that completes it**.
 This is done by introducing a new `code_verifier` parameter:
 
+```d2 height="max(45%, 400px)" width="max(70%, 550px)"
+vars: {
+  d2-config: {
+    theme-id: 101
+    sketch: true
+  }
+}
+
+shape: sequence_diagram
+
+client: Client
+server: Authorization Server
+
+client -> client: "1. Generate code_verifier"
+client -> client: "2. code_challenge = SHA256(code_verifier)"
+client -> server: "3. /authorize?code_challenge=..."
+server -> client: "4. Redirect with ?code=..."
+client -> server: "5. POST /token with code + code_verifier"
+server -> server: "6. Verify SHA256(code_verifier) == code_challenge"
+server -> client: "Return access_token"
+```
+
 1. The client generates a cryptographically random `code_verifier` and stores it locally
-1. The client computes the `SHA256` hash of the `code_verifier` to generate a `code_challenge`.
+1. The client computes the `SHA256` hash of the `code_verifier` to generate a `code_challenge`. This is the `S256` method - the RFC also defines a `plain` method that skips hashing, but in practice you should never use it.
 1. The client passes the `code_challenge` to the server as part of the standard OAuth Authorization Request, e.g. `example.com/oauth2/authorize?client_id=...&code_challenge=...`.
 1. The server records the `code_challenge` and proceeds with the standard OAuth flow, eventually redirecting back to the client with a `?code=...`.
-1. The client sends the server the saved `code_verifier` in the request to exchange the `code` for an access token
+1. The client sends the saved `code_verifier` in the `POST /token` request that exchanges the `code` for an access token (it is a request parameter, not part of the redirect)
 1. The server computes the `SHA256` hash of the `code_verifier` itself
    - If the hash matches the saved `code_challenge`, then the server knows that the client is the same one who initiated the flow and no interception occurred
    - If the hash does not match, the server fails the request
 
-There are some other bits and pieces around code challenge methods and URL encoding, but that's pretty much the entire spec.
+There are some other bits and pieces around the spec - the `code_verifier` must be 43–128 characters of high-entropy randomness ([Section 4.1](https://datatracker.ietf.org/doc/html/rfc7636#section-4.1)),
+the `code_challenge` is base64url-encoded (not standard base64), and clients advertise which method they used via a `code_challenge_method` parameter set to `S256` or `plain` - but that's pretty much the entire spec.
+
+Here's what that actually looks like in code - generating a `code_verifier` and deriving its `code_challenge` with WebCrypto:
+
+<RunnableCodeBlock>{`
+const base64url = (bytes) =>
+  btoa(String.fromCharCode(...bytes))
+    .replace(/\\+/g, '-')
+    .replace(/\\//g, '_')
+    .replace(/=+$/, '');
+
+const verifierBytes = crypto.getRandomValues(new Uint8Array(32));
+const code_verifier = base64url(verifierBytes);
+
+const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(code_verifier));
+const code_challenge = base64url(new Uint8Array(hashBuffer));
+
+console.log('code_verifier: ', code_verifier);
+console.log('code_challenge:', code_challenge);
+`}</RunnableCodeBlock>
 
 ## Top Tier Security API
 
@@ -38,6 +82,7 @@ You can’t fake PKCE. You either follow the spec or you fail.
 
 As a bonus, PKCE protects against [Login CSRF](https://support.detectify.com/support/solutions/articles/48001048951-login-csrf) attacks too.
 Attackers can't trick an unsuspecting user to click a link and log in to the wrong account because the user won't have the correct `code_verifier`.
+The `code_verifier` lives on the attacker's device, so when the victim's browser follows the redirect back, neither side can complete the token exchange - the attacker's session isn't involved, and the victim's browser has no `code_verifier` to present.
 
 ## PKCE All The Things
 

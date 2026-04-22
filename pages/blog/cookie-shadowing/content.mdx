@@ -27,6 +27,44 @@ Cookies set with an explicit domain of `example.com` will be available to both `
 some shared state. Cookies set without an explicit domain will only be available on the domain they are set at - so the session token set on `app.example.com`
 won't be available for the marketing site to accidentally leak in some way.
 
+```d2 height="max(30%, 250px)" width="max(60%, 500px)"
+vars: {
+  d2-config: {
+    theme-id: 101
+    sketch: true
+  }
+}
+
+direction: right
+
+app: "app.example.com"
+mkt: "example.com"
+
+c1: "session_token\ndomain=app.example.com" {shape: page}
+
+
+c2: "tracking_pixel\nexample.com\ndomain=<null>" {shape: page}
+
+app -> c1: can read
+mkt -> c1: cannot read {
+  target-arrowhead: {
+    shape: cross
+  }
+  style: {
+    stroke-dash: 3
+  }
+}
+app -> c2: cannot read{
+  target-arrowhead: {
+    shape: cross
+  }
+  style: {
+    stroke-dash: 3
+  }
+}
+mkt -> c2: can read
+```
+
 Suppose a developer makes a change to their product. Previously a cookie was only available on `example.com`, but now
 the developer wants to share that cookie with `app.example.com`.
 The developer sets the `domain` attribute on the cookie, deploys their code, and will discover that _both cookies_ will continue to exist.

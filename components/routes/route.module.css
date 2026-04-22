@@ -1,0 +1,63 @@
+.map {
+  height: 400px;
+  width: 100%;
+  border-radius: 8px;
+  margin: 1rem 0;
+  z-index: 0;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin: 0.5rem 0 1rem;
+  font-size: 0.95rem;
+  color: #555;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.difficulty {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.easy {
+  background: #d4edda;
+  color: #155724;
+}
+
+.moderate {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.hard {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.epic {
+  background: #d1c4e9;
+  color: #4a148c;
+}
+
+.photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.photos img {
+  width: 100%;
+  border-radius: 8px;
+}
