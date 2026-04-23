@@ -8,6 +8,14 @@ export type Blog = {
 
 export const Blogs: Blog[] = [
   {
+    publishDate: '04/22/2026',
+    title: 'Cross App Access and the Vercel Breach',
+    description:
+      "Vercel's April 2026 breach is a textbook case of the blast radius Cross-App Access is designed to prevent. Here's what XAA would have changed.",
+    slug: 'xaa-vercel-breach',
+    tags: ['xaa', 'oauth', 'security', 'authentication', 'identity'],
+  },
+  {
     publishDate: '05/25/2025',
     title: 'Cookie Shadowing Kind of Sucks',
     description:

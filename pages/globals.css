@@ -31,6 +31,15 @@ a:visited {
   z-index: 1; /* Adjust as needed */
 }
 
+.article-content {
+  line-height: 1.6;
+}
+
+.article-content img {
+  display: block;
+  margin: 0 auto;
+}
+
 .article-content svg {
   display: block;
   margin: 0 auto;

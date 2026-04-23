@@ -19,7 +19,9 @@ export default function RouteLayout({ slug, children }: Props) {
   return (
     <>
       <Head>
-        <title>{route.name} — {siteConfig.name}</title>
+        <title>
+          {route.name} — {siteConfig.name}
+        </title>
         <link rel='canonical' href={canonicalLink} />
 
         <meta name='description' content={route.description} />
