@@ -24,6 +24,12 @@ jobs:
           - 8000:8000
         env:
           KROKI_MAX_URI_LENGTH: 64000
+          KROKI_MERMAID_HOST: mermaid
+          KROKI_EXCALIDRAW_HOST: excalidraw
+      mermaid:
+        image: yuzutech/kroki-mermaid
+      excalidraw:
+        image: yuzutech/kroki-excalidraw
 
     steps:
       - name: Checkout 🛎️
