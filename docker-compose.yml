@@ -1,0 +1,16 @@
+services:
+  kroki:
+    image: yuzutech/kroki
+    ports:
+      - '8000:8000'
+    environment:
+      - KROKI_MERMAID_HOST=mermaid
+      - KROKI_EXCALIDRAW_HOST=excalidraw
+      - KROKI_MAX_URI_LENGTH=64000
+    links:
+      - mermaid
+      - excalidraw
+  mermaid:
+    image: yuzutech/kroki-mermaid
+  excalidraw:
+    image: yuzutech/kroki-excalidraw

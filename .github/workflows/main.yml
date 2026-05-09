@@ -17,6 +17,13 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      kroki:
+        image: yuzutech/kroki
+        ports:
+          - 8000:8000
+        env:
+          KROKI_MAX_URI_LENGTH: 64000
 
     steps:
       - name: Checkout 🛎️

@@ -9,9 +9,23 @@ Personal blog / portfolio site for maxgerber.com. Built with Next.js, TypeScript
 ## Commands
 
 ```bash
-npm run dev      # Start dev server
-npm run build    # Static build (next build with output: 'export')
+npm run dev         # Auto-starts Kroki (docker compose up -d) then next dev on :3030
+npm run build       # Static build. Requires Kroki running — run `npm run kroki:up` first
+npm run kroki:up    # Start local Kroki in the background (required for diagram rendering)
+npm run kroki:down  # Stop local Kroki
 ```
+
+Diagrams in MDX (```d2, ```mermaid, ```plantuml, ```excalidraw fences) are rendered at build time by `lib/rehype-kroki.mjs`, which POSTs the fence source to Kroki and inlines the returned SVG. In CI, Kroki runs as a GitHub Actions service container.
+
+For large diagram sources (especially Excalidraw JSON), put the source in a sibling file and reference it with `@file:`:
+
+````
+```excalidraw
+@file:diagrams/my-diagram.excalidraw
+```
+````
+
+The path is resolved relative to the MDX file. Inline fences still work for small diagrams.
 
 There are no tests. Pre-commit hook (Husky) auto-runs `prettier --write .` and `eslint . --fix`.
 

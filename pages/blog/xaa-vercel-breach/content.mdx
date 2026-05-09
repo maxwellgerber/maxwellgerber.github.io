@@ -4,7 +4,7 @@ Vercel experienced a pretty bad [security incident](https://vercel.com/kb/bullet
    - I despise being forced to use endpoint security products on my work machine, but I can't deny that endpoint security would have helped here.
 1. The attacker uses the compromised employee's account to access OAuth tokens of Context.ai's customers.
    - _Why does an employee have access to production OAuth access and refresh tokens? I don't want to know._
-1. An employee at Vercel had previously authorized Context.ai with "Allow All" permissions on Vercel's enterprise Google account
+1. An employee at Vercel had previously authorized Context.ai with "Allow All" permissions on Vercel's enterprise Google account.
 1. The attacker exfiltrated Vercel's GCP data, including environment variables set by Vercel's own customers (you and me!)
 
 This attack is circulating all over HN and X for a few reasons:
@@ -16,9 +16,9 @@ I want to talk specifically about step (3) - enterprise management of OAuth appl
 
 If you caught my talk at [MCP Dev Summit](https://www.youtube.com/watch?v=HRrzzORvy84) ([slides](https://maxgerber.com/xaa-final.pdf)) last month, you probably know where this is heading:
 
-- OAuth was born from B2C use cases - how do we allow users to share data with 3rd party apps without sharing their passwords? Let's design a flow where the user can consent to share a limited portion of data.
+- OAuth was born from B2C use cases - how do we allow users to share data with 3rd party apps without sharing their passwords? OAuth enables users to share limited access with apps without revealing their credentials.
 - OAuth has always been a poor fit for B2B use cases, because in B2B use cases, the data **does not belong to the user**. Employee data belongs to the company - not to the employee.
-- Individual employees should not have the authority to agree to share data with 3rd party tools. That capability should remain within the IT department.
+- Individual employees **should not have the authority** to agree to share data with 3rd party tools. That capability should remain within the IT department.
 
 <img
   src='/consent.png'
@@ -32,41 +32,23 @@ In an ideal world, IT Admins can write policies of varying degrees of severity:
 - 3rd party applications can only be installed by the explicit approval of an IT admin
 - 3rd party applications installed by end users can only access _less-sensitive data_ by default, and more sensitive data requires explicit approval
 
-Google seems to have all the [controls necessary](https://knowledge.workspace.google.com/admin/apps/control-which-apps-access-google-workspace-data?hl=en#trustorlimit) to build a policy like this. It is unclear if these policy control tools were used by the team at Vercel. Did the Vercel IT team explicitly approve the Context.ai OAuth app? Did they explicitly approve "Allow All" permissions - granting the app access to highly sensitive data?
+Google seems to have all the [controls necessary](https://knowledge.workspace.google.com/admin/apps/control-which-apps-access-google-workspace-data?hl=en#trustorlimit) to build a policy like this. It is unclear if these policy control tools were used by the team at Vercel. Did the Vercel IT team explicitly approve the Context.ai OAuth app? Did they explicitly approve "Allow All" permissions - granting the app access to highly sensitive data? Or was Context.ai granted access to production data by a lone employee?
 
-However, even if Google's tools are configured perfectly, they only cover _Google_. Every SaaS vendor your employees touch needs to build out its own version of these admin controls: Google did, Slack sort of did, Notion is getting there, GitHub has its own model, Atlassian has another. Most small vendors have _nothing_. If Context.ai had OAuth apps into Google, Slack, and Notion (entirely plausible for an AI tool), then the IT Admin is responsible for configuring access policies in three separate admin consoles, each with its own policy nuances. There is **no single pane of glass that shows what access a Client has across all the tools your enterprise uses**.
+However, even if Google's tools are configured perfectly, they only cover _Google_. Every SaaS vendor used in the enterprise needs to build out its own version of these admin controls: Google did, Slack sort of did, Notion is getting there, GitHub has its own model, Atlassian has another. Most small vendors have _nothing_. If Context.ai had been granted access to Google, Slack, and Notion (entirely plausible for an AI tool), then the IT Admin is responsible for configuring access policies in three separate admin consoles, each with its own policy nuances. There is **no single pane of glass that shows what access a Client has across all the tools your enterprise uses**.
 
 ## Cross-App Access
 
 This is the problem [Cross-App Access (XAA)](https://xaa.dev) is designed to solve, and it attacks the problem by _consolidating_ the policy surface to the Workforce IdP. Under XAA, end-user consent is removed from the picture. Once a user is logged in, clients reach out directly to the Workforce IdP for a short-lived, signed grant called an [ID-JAG](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant). Clients exchange this ID-JAG with the authorization server to get access tokens.
 
-```d2 height="max(50%, 450px)" width="max(70%, 600px)"
-vars: {
-  d2-config: {
-    theme-id: 101
-    sketch: true
-  }
-}
-
-direction: right
-
-client: "OAuth Client"
-idp: "Workforce IdP"
-google: "Google Workspace"
-
-client -> idp: "1. Request ID-JAG"
-idp -> idp: "2. Evaluate admin policy"
-idp -> client: "3. ID-JAG"
-
-client -> google: "4. Exchange ID-JAG for access token"
-google -> client: "5. Access token"
+```excalidraw height="max(50%, 450px)" width="max(70%, 600px)"
+@file:diagrams/xaa.excalidraw
 ```
 
 Critically, this would work the same way for Google, Slack, Notion, and any other resource that supports XAA. IT Admins write policy to control OAuth client behavior in one place, for Context.ai across _all_ of them.
 
-Be careful with what XAA actually delivers here. XAA does not prevent a compromised Context.ai from minting access tokens. If IdP policy says Context.ai gets `calendar:read` on Google, the attacker who controls Context.ai will still successfully mint `calendar:read` access tokens. What XAA provides is the machinery to make sure the IdP's policy is the _only_ thing Context.ai can ever do, evaluated on every single call, from one place. A few things fall out of that:
+Be careful with what XAA actually delivers here. XAA **does not prevent** a compromised Context.ai from minting access tokens. If IdP policy says Context.ai gets `calendar:read` on Google, the attacker who controls Context.ai will still successfully mint `calendar:read` access tokens. What XAA provides is the machinery to make sure the IdP's policy is the _only_ thing Context.ai can ever do, evaluated on every single call, from one place. A few things fall out of that:
 
-1. **No more "Allow All".** In the current model, consent is a blunt instrument: the user clicks through a scope list at install time and that's the end of the conversation. Under XAA, the IdP decides what scope the ID-JAG carries at issuance. An IT Admin can declare "Context.ai gets `calendar:read`, period" and a user clicking "Allow All" doesn't override that. The app cannot acquire root permissions it was never granted.
+1. **No more "Allow All".** In the current model, consent is a blunt instrument: the user clicks through a screen at install time and that's the end of the conversation. Under XAA, the IdP decides what scope the ID-JAG carries at issuance. An IT Admin can declare "Context.ai gets `calendar:read`, period" and a user clicking "Allow All" doesn't override that. The app cannot acquire root permissions it was never granted.
 1. **One admin surface across vendors.** The IT Admin writes one policy for Context.ai that governs Google, Slack, Notion, and anywhere else it operates. Today that's three separate consoles, each with its own policy language and consent model. Under XAA it's one.
 1. **One audit trail.** Every exchange flows through the IdP, so "highly suspicious activity on that account" is a single log stream with a consistent format. Today it's a dozen vendor consoles you have to stitch together.
 
@@ -75,5 +57,3 @@ Be careful with what XAA actually delivers here. XAA does not prevent a compromi
 Let's be honest about what this doesn't solve. XAA would not have stopped the Roblox cheat malware. It would not have stopped Context.ai's internal systems from being compromised. It would not have prevented _any_ of the first two steps in the timeline. What it changes is steps (3) and (4): the part where a compromise at a third-party vendor turns into a far worse incident because that vendor was ridiculously over-permissioned.
 
 The industry has spent a decade telling customers to audit their OAuth app inventory. That advice is correct, and it has not worked, because there is no central enforcement surface to audit _against_. Your policy has to live somewhere it can actually run, across every vendor you care about, not in 40 separate admin consoles. XAA puts it at the one system every enterprise already trusts.
-
-And one last thing worth saying: the HN and X crowd have been calling this an "AI breach," but there were no LLMs or agents anywhere in the timeline. The real shape of the incident is OAuth at enterprise scale. Context.ai being an AI company is the reason this is on the front page, but the lesson has nothing to do with AI.

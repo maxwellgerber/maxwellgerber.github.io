@@ -1,4 +1,7 @@
 import createMDX from '@next/mdx';
+import { fileURLToPath } from 'node:url';
+
+const krokiPlugin = fileURLToPath(new URL('./lib/rehype-kroki.mjs', import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -10,13 +13,7 @@ const withMDX = createMDX({
   options: {
     rehypePlugins: [
       'rehype-slug',
-      [
-        '@vahor/rehype-d2',
-        {
-          strategy: 'inline-svg',
-          defaultMetadata: { default: { layout: 'dagre', sketch: true, pad: 0 } },
-        },
-      ],
+      [krokiPlugin, { endpoint: process.env.KROKI_URL ?? 'http://localhost:8000' }],
     ],
   },
 
