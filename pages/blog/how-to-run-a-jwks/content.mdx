@@ -1,0 +1,187 @@
+import { RotationVisualizer } from '@/components/blog/how-to-run-a-jwks/RotationVisualizer';
+
+A JWKS is a deceptively simple JSON document. The entire failure mode can be described in one sentence: you publish a set of keys, consumers cache them, and if you change that set faster than their cache can keep up, things break in ways that are hard to distinguish from a token-forgery attack.
+
+There are plenty of guides that explain the format. Far fewer explain what it's like to *operate* one — what happens when you rotate at the wrong time, what your traffic graph looks like when a single customer misconfigures their cache, and why the first JWKS you ship should have three keys in it even when you only need one. This post is about the things that don't show up until you've been running a JWKS long enough for something to go wrong.
+
+## A quick refresher
+
+A [JSON Web Key Set](https://datatracker.ietf.org/doc/html/rfc7517) is a JSON document, usually served from a well-known URL, that lists the public keys a system uses to sign tokens. Each key carries a `kid` (key ID). When an issuer signs a JWT, it stamps the matching `kid` into the token header. When a Relying Party (RP) verifies the JWT, it pulls the JWKS, finds the key with that `kid`, and validates the signature.
+
+The mechanism exists to solve a distribution problem. The issuer doesn't want to notify every consumer when it rotates a key, and consumers don't want to hot-reload their trust store. A JWKS endpoint decouples the two sides: the issuer publishes, consumers pull on their own schedule, and rotation happens asynchronously.
+
+That decoupling is the whole game. **The JWKS endpoint is a cache boundary.** Everything interesting about operating one comes from the fact that consumers don't see your key changes instantly — and you have no reliable way to force them to.
+
+## Principles
+
+### Always publish at least two keys, starting on day one
+
+If your JWKS ever contains exactly one key, some consumer somewhere will write code that assumes it always will. A year later, when you try to add a second key, that code breaks in production — because the integrator indexed `keys[0]` instead of looking up by `kid`, or hardcoded the first key's fingerprint, or their JSON Schema refuses any array with more than one entry.
+
+The cheapest fix is to never give consumers the chance to make that assumption. Ship the JWKS on day one with multiple keys in it, even if you only sign with one of them. Three keys — `prev`, `active`, `next` — is a good default. The fact that `prev` has never actually signed anything is invisible to consumers, and their code is now trained on the shape you'll have forever.
+
+### Introduce new keys far in advance of when you'll use them
+
+Key publication is cache warming. When you start signing with a new `kid`, every consumer whose cache doesn't contain that key has to fetch. If the fetch happens during routine cache expiry, fine — it's indistinguishable from every other background refresh. If it happens in-band, during the hot path of verifying a request, the consumer's p99 takes a hit and their logs fill up with avoidable traffic pointed at you.
+
+Publish keys well before you use them so every consumer has time to pick them up during their own scheduled refresh. A practical rule of thumb: the advance publication window should be at least a small multiple of the longest cache TTL you believe any integrator uses. If most consumers cache for an hour and you rotate daily, four hours of warmup is plenty. If you have a consumer caching for 24 hours, the warmup window is a week, not a day.
+
+### Keep old keys around as long as the tokens signed with them are still valid
+
+This is the rule that most teams don't discover until they've already broken production with it. The mechanics look like this:
+
+```d2 height="max(45%, 400px)" width="max(70%, 550px)"
+vars: {
+  d2-config: {
+    theme-id: 101
+    sketch: true
+  }
+}
+
+shape: sequence_diagram
+
+rp: RP Backend
+cache: Local JWKS Cache
+jwks: JWKS Issuer
+
+rp -> cache: "1. Verify JWT (kid=X)"
+cache -> rp: "2. kid=X not in cache"
+rp -> jwks: "3. GET /.well-known/jwks.json"
+jwks -> rp: "4. Fresh JWKS"
+rp -> rp: "5. kid=X still not present.\nExpired key? Unknown new key?\nNo way to tell."
+```
+
+When an RP sees a JWT with an unknown `kid`, its only reasonable move is to refetch the JWKS — maybe it's been rotated. If the refetched JWKS still doesn't contain that `kid`, the RP is stuck: it cannot tell the difference between *"this key was dropped before I noticed"* and *"this key was just added but I'm somehow looking at a stale JWKS."* There's no API surface for "keys you used to have."
+
+A naive implementation treats every such mismatch as a potential refresh signal. That means every JWT signed with an evicted-but-unexpired key generates a network round trip to your JWKS endpoint. If you dropped a key while tokens signed with it were still in circulation, you've created a DDoS against yourself — and the traffic is coming from your own customers.
+
+The rule, then: `old_key_retention ≥ max_issued_token_lifetime`. If your tokens live an hour, retain old keys for at least an hour after you stop signing with them. Most of the time you can just leave them in `prev` for an entire rotation cycle and never think about it.
+
+### Rotate often, but at a cadence the system can absorb
+
+The best argument for frequent rotation isn't cryptographic — it's operational. Rotation code that runs once a quarter is rotation code that has never been tested. The first time you have to emergency-rotate, you'll discover that half your integrators never implemented the refresh path, that your runbook references a CLI flag that was renamed two years ago, and that the `kid` field you chose looks identical to the last three keys you rotated out.
+
+Let's Encrypt is the canonical example of this argument in action: short certificate lifetimes dragged the web from "rotation is a scheduled outage" to "rotation is background noise," and the lowered ceremony produced far more reliable systems. JWKS is the same shape of problem. Rotate often enough that rotation is boring.
+
+The one place this bites you is multi-tenancy. If you run one JWKS per tenant and you rotate on a shared schedule, every tenant's consumers refresh simultaneously the instant you roll the new key into `active`. You've now arranged for a coordinated stampede against your own endpoint. **Jitter the rotation schedule per tenant.** The cost is nothing; the gain is not self-inflicted thundering herds.
+
+## The three-key pattern
+
+Put the principles together and you get a concrete scheme. At any given moment, the JWKS contains three keys: `prev`, `active`, and `next`. The signer only ever uses `active`. `prev` is retained so tokens signed before the last rotation still verify. `next` is published ahead of time so every consumer has had a chance to cache it before it becomes the signing key.
+
+At each rotation epoch, everything shifts by one:
+
+```d2 height="max(40%, 350px)" width="max(60%, 500px)"
+vars: {
+  d2-config: {
+    theme-id: 101
+    sketch: true
+  }
+}
+
+direction: right
+
+before: "Before rotation" {
+  b_prev: prev
+  b_active: active {style.fill: "#cde4ff"}
+  b_next: next
+}
+
+after: "After rotation" {
+  a_prev: prev
+  a_active: active {style.fill: "#cde4ff"}
+  a_next: next
+}
+
+dropped: "dropped from JWKS"
+fresh: "freshly generated"
+
+before.b_prev -> dropped
+before.b_active -> after.a_prev
+before.b_next -> after.a_active
+fresh -> after.a_next
+```
+
+You can play with it here. Each click of "Rotate" is one epoch:
+
+<RotationVisualizer />
+
+The rotation logic is genuinely tiny:
+
+```ts
+type Key = { kid: string; privateKey: CryptoKey; publicKey: CryptoKey };
+
+function rotate(state: { prev: Key; active: Key; next: Key }) {
+  return {
+    prev: state.active,
+    active: state.next,
+    next: generateKey(),
+  };
+}
+```
+
+What that snippet *doesn't* show is where all the real work lives: persisting keys across restarts, jittering rotation for multi-tenant deployments, handling emergency rotation when a key is compromised, coordinating with integrators who pinned your public keys into places they can't easily update. The rotation function is five lines. The rotation *system* is an order of magnitude more code than that, and most of it is failure handling.
+
+One constraint worth calling out: `rotation_interval ≥ max_jwt_lifetime + slack`. If JWTs live one hour, don't rotate faster than every 90 minutes or so — otherwise `prev` gets evicted before the tokens it signed have expired, and you're back to the scenario in the previous section where RPs can't find the key they need.
+
+## What you won't find in the RFC
+
+Everything above is in the spec if you squint hard enough. What follows is the stuff you only learn by watching a JWKS endpoint in production for a while.
+
+### `Cache-Control` matters more than you think
+
+RFC 7517 has nothing to say about HTTP caching. It's a JSON document; the HTTP layer is someone else's problem. In practice, the `Cache-Control` header on your JWKS endpoint is *the* lever that determines whether rotation is smooth or painful. A missing header leaves every consumer to invent their own policy — some cache for 60 seconds, some for 24 hours, some not at all — and you lose the ability to reason about rotation timing at all.
+
+Publish a reasonable `Cache-Control: public, max-age=...` value. Document it. Measure how often clients actually refetch and compare that to what you told them to do. The answer is almost always "some of them ignore you," and knowing who and by how much is the difference between a confident rotation and a hopeful one.
+
+### Pick a `kid` scheme you can read at 3am
+
+Random UUIDs look secure but tell you nothing during an incident. When you're paged at night and staring at a JWT with `kid: "f47ac10b-58cc-4372-a567-0e02b2c3d479"`, that string gives you no help at all — you can't tell how old the key is, whether it should still be active, or what system generated it.
+
+Embed something legible: `2026-q2-active`, or `issuer-v3-2026-05-09`, or even just a monotonic counter per issuer. `kid` is public and serves no cryptographic purpose beyond being a unique handle — there's no reason to obscure it. The one thing to avoid is making `kid` derivable from the public key itself (like a thumbprint): you want `kid` values to be stable across key serialization quirks, and you want humans to be able to pattern-match them at a glance.
+
+### Monitor re-fetch rate, not just hit rate
+
+The total hit rate on your JWKS endpoint isn't very informative — it rises and falls with overall traffic. The useful signal is the *re-fetch rate per consumer*: how many requests are coming from clients that already fetched recently. A healthy consumer fetches once per cache TTL. A spike in re-fetches means something just minted JWTs with a `kid` nobody has seen — and if nothing on your side has changed, something on the consumer side has gotten confused.
+
+The adjacent alert worth building: unknown-`kid` rate at your own verification path. If you see a lot of tokens hitting your services with `kid` values that aren't in your current JWKS, either someone is replaying old tokens, a forged issuer is in play, or (far more likely) a consumer has a broken cache and is sending you tokens they fetched minutes ago from a different issuer. All three are worth paging on.
+
+### Customers who pin your keys are a category, not an exception
+
+Some consumers will copy your public key into a mobile app binary, bake it into firmware, or embed it in an on-chain contract. They have their reasons: deterministic builds, reproducible verification, reduced attack surface, or just "the device can't reach the internet reliably." They will never see your rotation, full stop.
+
+If you have this category of consumer, rotation isn't a purely async operation anymore — it's a multi-week coordination exercise. Know who these customers are, keep a list, and plan rotations with their release cycles in mind. The alternative is to accept that they'll pin a single key forever and that you can never actually rotate away from it. Both are valid choices; the one you don't want is "find out you have one of these customers the first time you try to rotate."
+
+### Emergency rotation is a different algorithm
+
+The three-key pattern assumes rotation is scheduled and boring. Compromised keys are neither. If a key gets out, you cannot wait for the next rotation epoch — you have to drop the compromised key immediately and accept that any JWT signed with it becomes invalid the moment you publish.
+
+Have a runbook. Know in advance: who you notify, how you publish the new JWKS, how quickly you can mint new tokens for legitimate sessions, and who handles the support-ticket surge while your caching consumers spend the next TTL catching up. Practice it on a non-production key at least once. The only thing worse than an emergency rotation is an emergency rotation where you discover mid-incident that the runbook step is `TODO: figure this out`.
+
+## If you're on the consumer side
+
+Most of the above is written for the issuer. If you're the one validating tokens, your job is smaller but the opportunities to get it wrong are no less numerous. A checklist:
+
+- **Respect the `Cache-Control` header.** Don't hardcode a TTL. The issuer has a better view than you do of when their keys will change.
+- **Throttle refresh-on-miss.** When a JWT references a `kid` you don't have, one refresh is reasonable. Unbounded refreshes for every subsequent token with the same unknown `kid` is how you turn a misconfigured issuer into a DDoS against yourself.
+- **Cache negative lookups.** If a `kid` is not in the JWKS after a refresh, don't refetch for every subsequent token that uses it. A short negative cache (a few minutes) is usually enough.
+- **Validate the algorithm, not just the signature.** Reject `alg: none`, and pass your verifier an explicit list of algorithms you expect. Most JWT library CVEs over the last decade are one variation or another of accepting whatever `alg` the token header claims.
+- **Warm your cache at process start.** A cold start shouldn't force the first real request to pay for a JWKS fetch.
+
+### What the popular libraries do by default
+
+The defaults change between major versions — check the docs of whatever you're running. As of current versions:
+
+- **[`jose`](https://github.com/panva/jose) (Node/TypeScript).** The `createRemoteJWKSet()` helper caches the JWKS in memory. On an unknown `kid`, it refetches with a built-in cooldown so a flood of bad tokens doesn't translate into a flood of network calls. Signature verification requires you to pass the expected algorithm(s) explicitly; unlisted algorithms are rejected.
+- **[`go-jose`](https://github.com/go-jose/go-jose) (Go).** Low-level — no built-in remote JWKS caching. You construct a `jose.JSONWebKeySet` from a response body yourself and decide when to refresh. Algorithm validation is done via explicit allowlists at verification time.
+- **[`jwx`](https://github.com/lestrrat-go/jwx) (Go).** Higher-level than `go-jose`. The `jwk.Cache` helper manages fetch-and-refresh for you, including coalesced lookups and configurable refresh windows. `jwt.Parse` takes an explicit `WithKeySet`/`WithValidate` option set; strict algorithm handling is opt-in via `jwt.WithValidator`.
+- **[`PyJWT`](https://github.com/jpadilla/pyjwt) (Python).** Shipped a `PyJWKClient` starting in 2.0 that does in-memory caching by `kid`. `decode()` requires an explicit `algorithms=[...]` list — it'll raise rather than pick an algorithm for you.
+- **[`python-jose`](https://github.com/mpdavis/python-jose) (Python).** No bundled remote JWKS helper. You pass the key (or key set) to `jwt.decode()` yourself. The `algorithms` parameter is required in recent versions.
+
+Check the version you're actually importing. "Requires an explicit algorithm list" has been true of each of these at various points and false at others.
+
+## Closing
+
+JWKS is one of those systems that's boring when it's done right and catastrophic when it's done wrong. The failure modes aren't exotic — they're almost all just cache coherency problems with a cryptographic blast radius stapled on.
+
+The patterns that keep it boring — publish in advance, keep old artifacts around longer than you think you need to, rotate often enough that the muscle memory stays fresh — aren't specific to JWKS. You'll reach for the same shapes again the next time you run a TLS certificate authority, a code-signing pipeline, or any other system where one side publishes keys and another side caches them. Build the intuition here and you'll have it everywhere it matters.

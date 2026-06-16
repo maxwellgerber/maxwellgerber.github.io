@@ -1,0 +1,56 @@
+
+JWK Rotation Guide:
+
+First, some principles:
+
+# You should always have 2+ keys
+If you do not have at least 2 keys, callers will assume there is only one key, and will break when that assumption no longer lods. Make sure you always have more than one key, especially right after the JWKS is first created. That is when a new caller is most likely to be looking at the result and planning their integration.
+
+# Introduce new keys far in advance of when you want to use them
+Introducing keys far in advance gives customers aple time to cache the keys, prevending a thundering herd later on when key rotation actually occurs.
+If a customer needs to pull a fewsh JWKS in-band while processing a request, their p99 takes a hit. Don't make their app feel slow, give them lots of time to warm the cache.
+
+# Keep old keys around as long as the issued credentials are still valid
+
+If you rotate to a new key, and yo drop the previously used key immediately, you mass-invalidate a lot of credentials. Usually in a bad way:
+- Backend sees missing KID in JWT
+- Backejd assumes JWT KID is new, ad fetches fresh JWKS
+- Validation fails because JWKS does not contain old KID
+- In a naive implementation every credential with the old KID triggers a netowk call.
+
+RP backend cannot differentiate between a JWT that references and expired KID that has fallen out of the JWKS and a JWT that references a brand new KID that has just been added to the JWKS
+
+Rotate as often as you can, but without affecting the rest of the system:
+- Rotating often ensures that customers of the JWT are implementing rotation correctly in their system as well
+- LetsEncrypt reducing TTL of certificates is a good model for this
+- If you manage many JWKS - such as one per tenant - incorperate some jitter into the process. Very bad to rotate _all_ of them at once and trigger a lot of traffic towards yourself.
+
+To work in:
+Customers that save the public keys and put them into native apps, on blockchains, or only reload the JWT on app-start-up.
+
+Concrete plan: 3 Keys
+- 1 prev
+- 1 active
+- 1 next
+
+At each epoch, prev is discarded from the JWKS
+Active becomes prev
+next becomes active
+New key is created and becomes next
+
+prev -> removed
+active -> prev
+next -> active
+new -> next
+
+JWKS should _always_ have >1 key, so create it with at least an active and a new key. I like to not have special cases around the first epoch, so I prefer creating a prev, active, and next key from the very beginning, even if the prev key is never used.
+
+
+=======
+Blog structure
+- Rehash, what is JWKS and why would someone use one
+- As a server owner, here is what you should think about doing
+  - Principles (>1 key! warm cache!)
+  - 3 key pattern (with diagram)
+- As a JWKS consumer, here is what you should think about doing
+

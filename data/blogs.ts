@@ -7,6 +7,14 @@ export type Blog = {
 };
 
 export const Blogs: Blog[] = [
+  // {
+  //   publishDate: '05/09/2026',
+  //   title: 'How to run a JWKS Endpoint',
+  //   description:
+  //     'Hard-won lessons from running JWKS endpoints in production: why you always want three keys, why rotation cadence matters, and the failure modes that only show up at scale.',
+  //   slug: 'how-to-run-a-jwks',
+  //   tags: ['security', 'authentication', 'oauth', 'identity'],
+  // },
   {
     publishDate: '04/22/2026',
     title: 'Cross App Access and the Vercel Breach',

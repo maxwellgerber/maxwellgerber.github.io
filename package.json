@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev -p 3030",
     "build": "next build",
+    "build:slides": "marp slides/ciba-vs-dtr-may-2026/ciba-vs-dtr-may-2026.md -o public/slides/ciba-vs-dtr-may-2026.html --allow-local-files --config-file slides/marp.config.cjs",
     "start": "next start",
     "kroki:up": "docker compose up -d",
     "kroki:down": "docker compose down",
@@ -29,6 +30,8 @@
     "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {
+    "@kazumatu981/markdown-it-kroki": "^1.3.6",
+    "@marp-team/marp-cli": "^4.3.1",
     "@types/node": "22.15.18",
     "eslint-config-next": "^16.2.3",
     "eslint-config-prettier": "^10.1.5",

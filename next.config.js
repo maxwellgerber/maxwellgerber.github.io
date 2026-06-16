@@ -11,10 +11,7 @@ const nextConfig = {
 
 const withMDX = createMDX({
   options: {
-    rehypePlugins: [
-      'rehype-slug',
-      [krokiPlugin, { endpoint: process.env.KROKI_URL ?? 'http://localhost:8000' }],
-    ],
+    rehypePlugins: ['rehype-slug', [krokiPlugin, { endpoint: process.env.KROKI_URL ?? 'http://localhost:8000' }]],
   },
 
   extension: /\.(md|mdx)$/,

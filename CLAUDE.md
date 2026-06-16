@@ -9,10 +9,11 @@ Personal blog / portfolio site for maxgerber.com. Built with Next.js, TypeScript
 ## Commands
 
 ```bash
-npm run dev         # Auto-starts Kroki (docker compose up -d) then next dev on :3030
-npm run build       # Static build. Requires Kroki running — run `npm run kroki:up` first
-npm run kroki:up    # Start local Kroki in the background (required for diagram rendering)
-npm run kroki:down  # Stop local Kroki
+npm run dev           # Auto-starts Kroki (docker compose up -d) then next dev on :3030
+npm run build         # Static build. Requires Kroki running — run `npm run kroki:up` first
+npm run build:slides  # Build Marp slides → public/slides/ciba-vs-dtr.html. Requires Kroki running
+npm run kroki:up      # Start local Kroki in the background (required for diagram rendering)
+npm run kroki:down    # Stop local Kroki
 ```
 
 Diagrams in MDX (```d2, ```mermaid, ```plantuml, ```excalidraw fences) are rendered at build time by `lib/rehype-kroki.mjs`, which POSTs the fence source to Kroki and inlines the returned SVG. In CI, Kroki runs as a GitHub Actions service container.
@@ -44,6 +45,12 @@ There are no tests. Pre-commit hook (Husky) auto-runs `prettier --write .` and `
 2. Add an entry to the `Blogs` array in `data/blogs.ts`
 3. Place any post-specific components in `components/blog/<slug>/`
 
+## Slides
+
+Marp presentations live in `slides/<slug>/`. Each deck is a single `.md` file with Marp front matter. Diagrams use the same `@file:` / Kroki pattern as MDX blog posts (`slides/marp.config.cjs` wires this up). Built HTML lands in `public/slides/<slug>.html` and is served as a standalone file (no Next.js page needed). CI builds slides after `next build` using the same Kroki service container.
+
+To add a new deck: drop `slides/<slug>/<slug>.md` (and a `diagrams/` folder if needed), then add a `build:slides` entry for it in `package.json` and the CI step in `.github/workflows/main.yml`.
+
 ## CI/CD
 
-GitHub Actions on push to `master`: builds with Node 20 and deploys to GitHub Pages.
+GitHub Actions on push to `master`: builds with Node 22, runs `next build` then `build:slides`, and deploys the combined `out/` to GitHub Pages.
