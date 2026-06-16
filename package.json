@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev -p 3030",
     "build": "next build",
-    "build:slides": "marp slides/ciba-vs-dtr-may-2026/ciba-vs-dtr-may-2026.md -o public/slides/ciba-vs-dtr-may-2026.html --allow-local-files --config-file slides/marp.config.cjs",
+    "build:slides": "slides/build.sh",
     "start": "next start",
     "kroki:up": "docker compose up -d",
     "kroki:down": "docker compose down",
