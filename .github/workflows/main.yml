@@ -39,17 +39,12 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 24
-      - run: npm ci --ignore-scripts
-        env:
-          PUPPETEER_SKIP_DOWNLOAD: true
+      - run: npm ci
 
       - name: Setup Pages ⚙️
         uses: actions/configure-pages@v6
         with:
           static_site_generator: next
-
-      - name: Build Marp slides 🎞️
-        run: npm run build:slides
 
       - name: Build with Next.js 🏗️
         run: npx next build

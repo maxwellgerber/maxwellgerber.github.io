@@ -11,7 +11,7 @@ Personal blog / portfolio site for maxgerber.com. Built with Next.js, TypeScript
 ```bash
 npm run dev           # Auto-starts Kroki (docker compose up -d) then next dev on :3030
 npm run build         # Static build. Requires Kroki running — run `npm run kroki:up` first
-npm run build:slides  # Build Marp slides → public/slides/ciba-vs-dtr.html. Requires Kroki running
+npm run build:slides  # Build Marp slides → public/slides/*.html. LOCAL ONLY — requires Kroki running. Commit the output HTML after running.
 npm run kroki:up      # Start local Kroki in the background (required for diagram rendering)
 npm run kroki:down    # Stop local Kroki
 ```
