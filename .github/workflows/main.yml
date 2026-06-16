@@ -36,10 +36,15 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Node.js ⚙️ - Cache dependencies ⚡ - Install dependencies 🔧
-        uses: ./.github/workflows/setup-node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - run: npm ci
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: true
 
       - name: Setup Pages ⚙️
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v6
         with:
           static_site_generator: next
 
@@ -50,7 +55,7 @@ jobs:
         run: npx next build
 
       - name: Upload artifact 📡
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./out
 
