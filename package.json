@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "next dev -p 3030",
     "build": "next build",
-    "build:slides": "slides/build.sh",
     "start": "next start",
     "kroki:up": "docker compose up -d",
     "kroki:down": "docker compose down",
