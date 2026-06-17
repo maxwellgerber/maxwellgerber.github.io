@@ -7,7 +7,7 @@ export type Blog = {
 };
 
 export const Blogs: Blog[] = [
-  // DRAFT — page lives in pages/blog/_how-to-run-a-jwks/, uncomment to publish
+  // DRAFT — page lives in drafts/blog/how-to-run-a-jwks/, move to pages/blog/ and uncomment to publish
   // {
   //   publishDate: '05/09/2026',
   //   title: 'How to run a JWKS Endpoint',
