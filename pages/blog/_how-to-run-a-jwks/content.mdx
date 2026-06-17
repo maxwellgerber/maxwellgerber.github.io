@@ -2,7 +2,7 @@ import { RotationVisualizer } from '@/components/blog/how-to-run-a-jwks/Rotation
 
 A JWKS is a deceptively simple JSON document. The entire failure mode can be described in one sentence: you publish a set of keys, consumers cache them, and if you change that set faster than their cache can keep up, things break in ways that are hard to distinguish from a token-forgery attack.
 
-There are plenty of guides that explain the format. Far fewer explain what it's like to *operate* one — what happens when you rotate at the wrong time, what your traffic graph looks like when a single customer misconfigures their cache, and why the first JWKS you ship should have three keys in it even when you only need one. This post is about the things that don't show up until you've been running a JWKS long enough for something to go wrong.
+There are plenty of guides that explain the format. Far fewer explain what it's like to _operate_ one — what happens when you rotate at the wrong time, what your traffic graph looks like when a single customer misconfigures their cache, and why the first JWKS you ship should have three keys in it even when you only need one. This post is about the things that don't show up until you've been running a JWKS long enough for something to go wrong.
 
 ## A quick refresher
 
@@ -51,7 +51,7 @@ jwks -> rp: "4. Fresh JWKS"
 rp -> rp: "5. kid=X still not present.\nExpired key? Unknown new key?\nNo way to tell."
 ```
 
-When an RP sees a JWT with an unknown `kid`, its only reasonable move is to refetch the JWKS — maybe it's been rotated. If the refetched JWKS still doesn't contain that `kid`, the RP is stuck: it cannot tell the difference between *"this key was dropped before I noticed"* and *"this key was just added but I'm somehow looking at a stale JWKS."* There's no API surface for "keys you used to have."
+When an RP sees a JWT with an unknown `kid`, its only reasonable move is to refetch the JWKS — maybe it's been rotated. If the refetched JWKS still doesn't contain that `kid`, the RP is stuck: it cannot tell the difference between _"this key was dropped before I noticed"_ and _"this key was just added but I'm somehow looking at a stale JWKS."_ There's no API surface for "keys you used to have."
 
 A naive implementation treats every such mismatch as a potential refresh signal. That means every JWT signed with an evicted-but-unexpired key generates a network round trip to your JWKS endpoint. If you dropped a key while tokens signed with it were still in circulation, you've created a DDoS against yourself — and the traffic is coming from your own customers.
 
@@ -120,7 +120,7 @@ function rotate(state: { prev: Key; active: Key; next: Key }) {
 }
 ```
 
-What that snippet *doesn't* show is where all the real work lives: persisting keys across restarts, jittering rotation for multi-tenant deployments, handling emergency rotation when a key is compromised, coordinating with integrators who pinned your public keys into places they can't easily update. The rotation function is five lines. The rotation *system* is an order of magnitude more code than that, and most of it is failure handling.
+What that snippet _doesn't_ show is where all the real work lives: persisting keys across restarts, jittering rotation for multi-tenant deployments, handling emergency rotation when a key is compromised, coordinating with integrators who pinned your public keys into places they can't easily update. The rotation function is five lines. The rotation _system_ is an order of magnitude more code than that, and most of it is failure handling.
 
 One constraint worth calling out: `rotation_interval ≥ max_jwt_lifetime + slack`. If JWTs live one hour, don't rotate faster than every 90 minutes or so — otherwise `prev` gets evicted before the tokens it signed have expired, and you're back to the scenario in the previous section where RPs can't find the key they need.
 
@@ -130,7 +130,7 @@ Everything above is in the spec if you squint hard enough. What follows is the s
 
 ### `Cache-Control` matters more than you think
 
-RFC 7517 has nothing to say about HTTP caching. It's a JSON document; the HTTP layer is someone else's problem. In practice, the `Cache-Control` header on your JWKS endpoint is *the* lever that determines whether rotation is smooth or painful. A missing header leaves every consumer to invent their own policy — some cache for 60 seconds, some for 24 hours, some not at all — and you lose the ability to reason about rotation timing at all.
+RFC 7517 has nothing to say about HTTP caching. It's a JSON document; the HTTP layer is someone else's problem. In practice, the `Cache-Control` header on your JWKS endpoint is _the_ lever that determines whether rotation is smooth or painful. A missing header leaves every consumer to invent their own policy — some cache for 60 seconds, some for 24 hours, some not at all — and you lose the ability to reason about rotation timing at all.
 
 Publish a reasonable `Cache-Control: public, max-age=...` value. Document it. Measure how often clients actually refetch and compare that to what you told them to do. The answer is almost always "some of them ignore you," and knowing who and by how much is the difference between a confident rotation and a hopeful one.
 
@@ -142,7 +142,7 @@ Embed something legible: `2026-q2-active`, or `issuer-v3-2026-05-09`, or even ju
 
 ### Monitor re-fetch rate, not just hit rate
 
-The total hit rate on your JWKS endpoint isn't very informative — it rises and falls with overall traffic. The useful signal is the *re-fetch rate per consumer*: how many requests are coming from clients that already fetched recently. A healthy consumer fetches once per cache TTL. A spike in re-fetches means something just minted JWTs with a `kid` nobody has seen — and if nothing on your side has changed, something on the consumer side has gotten confused.
+The total hit rate on your JWKS endpoint isn't very informative — it rises and falls with overall traffic. The useful signal is the _re-fetch rate per consumer_: how many requests are coming from clients that already fetched recently. A healthy consumer fetches once per cache TTL. A spike in re-fetches means something just minted JWTs with a `kid` nobody has seen — and if nothing on your side has changed, something on the consumer side has gotten confused.
 
 The adjacent alert worth building: unknown-`kid` rate at your own verification path. If you see a lot of tokens hitting your services with `kid` values that aren't in your current JWKS, either someone is replaying old tokens, a forged issuer is in play, or (far more likely) a consumer has a broken cache and is sending you tokens they fetched minutes ago from a different issuer. All three are worth paging on.
 
