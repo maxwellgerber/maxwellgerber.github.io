@@ -1,0 +1,1311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Scope Creep: a short deck-building roguelike where you play an OAuth authorization server, drafting RFCs as cards to fight off attackers.">
+<link rel="icon" href="/favicon.svg">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}</style>
+<title>Scope Creep</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Rubik:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap">
+<style>
+/* Layout: a paper theatre at night. A cut-paper neon skyline sits behind everything; attackers and
+   your server are puppets on sticks; cards are stacked sheets with scissor-cut header bands.
+   One committed look (night city), so there is a single palette and no light variant. */
+:root{
+  color-scheme:dark;
+  --ink:#150b2e; --ink2:#241546; --paper:#f6f3ff; --paper-mute:#5d5480; --text:#f6f3ff; --text-mute:#c4b8ea;
+  --mag:#ff2e88; --cyan:#19d3f3; --yel:#ffc914; --lime:#9dff3a; --vio:#a78bfa; --org:#ff9a1f;
+  --hard:rgba(5,2,15,.62);
+  --f-display:"Bungee","Arial Black",Impact,sans-serif;
+  --f-ui:"Rubik",system-ui,sans-serif;
+  --f-mono:"Space Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:#0f0726;color:var(--text);font-family:var(--f-ui);font-size:15px;line-height:1.45;overflow:hidden}
+#bg{position:fixed;inset:0;z-index:0;pointer-events:none}
+#bg svg{width:100%;height:100%;display:block}
+#grain{position:fixed;inset:0;z-index:70;pointer-events:none;opacity:.16;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.1 -.2'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E")}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
+#app{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;gap:10px;padding-block:10px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* HUD: stickers */
+#hud{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;font-family:var(--f-mono);font-size:12px;font-weight:700}
+#hud .mark{font-family:var(--f-display);font-size:19px;color:var(--yel);text-shadow:2px 2px 0 var(--mag),4px 4px 0 var(--ink);margin-right:auto;transform:rotate(-2deg);letter-spacing:.02em}
+#hud .stat{background:var(--paper);color:var(--ink);padding:3px 9px;border-radius:3px 6px 4px 7px;box-shadow:3px 3px 0 var(--hard);transform:rotate(-1.2deg)}
+#hud .stat:nth-of-type(odd){transform:rotate(1deg)}
+#hud .stat b{font-variant-numeric:tabular-nums}
+#hud .hp{background:var(--mag)} #hud .gold{background:var(--yel)}
+.btn{background:var(--paper);color:var(--ink);border:2px solid var(--ink);border-radius:5px 3px 6px 4px;padding:5px 11px;font-family:var(--f-ui);font-weight:700;font-size:12.5px;
+  text-transform:uppercase;letter-spacing:.04em;box-shadow:3px 3px 0 var(--hard);transition:transform .08s,box-shadow .08s}
+.btn:hover:not([disabled]){transform:translate(-1px,-1px) rotate(-1deg);box-shadow:4px 4px 0 var(--hard)}
+.btn:active:not([disabled]){transform:translate(3px,3px);box-shadow:0 0 0 var(--hard)}
+.btn.primary{background:var(--mag);box-shadow:3px 3px 0 var(--yel),6px 6px 0 var(--hard)}
+.btn.big{padding:10px 18px;font-size:14px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+
+#stage{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;position:relative}
+.col{max-width:860px;margin:6px auto 30px;display:flex;flex-direction:column;gap:16px;padding:clamp(14px,3vw,24px);
+  background:color-mix(in srgb,var(--ink2) 94%,transparent);border:3px solid var(--paper);border-radius:6px 10px 5px 9px;box-shadow:8px 8px 0 var(--hard)}
+.col.bare{background:none;border:0;box-shadow:none;padding:0}
+h1,h2{font-family:var(--f-display);font-weight:400;line-height:1.05;margin:0;text-wrap:balance}
+h2{font-size:clamp(22px,4.4vw,34px);color:var(--paper);text-shadow:3px 3px 0 var(--mag)}
+.eyebrow{display:inline-block;font-family:var(--f-mono);font-weight:700;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
+  background:var(--cyan);color:var(--ink);padding:2px 8px;border-radius:3px;transform:rotate(-1.5deg);margin-bottom:8px;box-shadow:2px 2px 0 var(--hard)}
+p{margin:0;max-width:65ch}
+.muted{color:var(--text-mute)}
+
+/* Title: a taped-up memo with cut-out letters */
+.memo{background:var(--paper);color:var(--ink);border-radius:4px 8px 5px 9px;box-shadow:6px 6px 0 var(--cyan),12px 12px 0 var(--hard);
+  font-family:var(--f-mono);font-size:13px;padding:clamp(20px,4vw,40px);display:flex;flex-direction:column;gap:18px;position:relative;transform:rotate(-.5deg);margin:14px 8px 0}
+.memo::before,.memo::after{content:"";position:absolute;top:-12px;width:88px;height:26px;background:color-mix(in srgb,var(--yel) 78%,transparent);box-shadow:1px 2px 0 var(--hard)}
+.memo::before{left:8%;transform:rotate(-5deg)} .memo::after{right:8%;transform:rotate(4deg)}
+.memo .hdr{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--paper-mute);font-weight:700}
+.memo .hdr div:last-child{text-align:right}
+.cut{font-size:clamp(30px,9.4vw,84px);display:flex;flex-direction:column;gap:.16em;align-items:flex-start}
+.cut span{display:flex;gap:.09em}
+.cut i{font-style:normal;display:grid;place-items:center;min-width:1.05em;padding:.06em .12em;color:var(--ink);background:var(--c);
+  border-radius:.06em .1em .05em .12em;box-shadow:.07em .08em 0 var(--ink);transform:rotate(var(--r));animation:wob 3.6s ease-in-out infinite alternate;animation-delay:var(--d)}
+.memo h3{font:700 13px var(--f-mono);margin:0 0 4px}
+.memo p{padding-left:3ch;max-width:68ch}
+.memo .go{display:flex;gap:12px;flex-wrap:wrap}
+
+/* Map: branching route, bottom to top */
+.maphead{text-align:center}
+.mapsheet{--mp:#f4f0fd;--mline:rgba(21,11,46,.07);position:relative;width:min(100%,620px);margin:18px auto 6px;padding:22px 18px 14px 34px;color:var(--ink);border-radius:4px 9px 5px 10px;transform:rotate(-.4deg);
+  background:linear-gradient(90deg,transparent calc(33.3% - 1px),rgba(21,11,46,.1) 33.3%,rgba(255,255,255,.7) calc(33.3% + 1px),transparent calc(33.3% + 3px),transparent calc(66.6% - 1px),rgba(21,11,46,.1) 66.6%,rgba(255,255,255,.7) calc(66.6% + 1px),transparent calc(66.6% + 3px)),
+   linear-gradient(transparent calc(50% - 1px),rgba(21,11,46,.09) 50%,rgba(255,255,255,.7) calc(50% + 1px),transparent calc(50% + 3px)),
+   linear-gradient(90deg,var(--mline) 1px,transparent 1px) 0 0/26px 26px,linear-gradient(var(--mline) 1px,transparent 1px) 0 0/26px 26px,var(--mp);
+  box-shadow:6px 6px 0 var(--cyan),12px 12px 0 var(--hard)}
+.mapsheet::before,.mapsheet::after{content:"";position:absolute;top:-12px;width:84px;height:24px;background:color-mix(in srgb,var(--yel) 78%,transparent);box-shadow:1px 2px 0 var(--hard);z-index:4}
+.mapsheet::before{left:10%;transform:rotate(-6deg)} .mapsheet::after{right:10%;transform:rotate(5deg)}
+.mtitle{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;font:700 11px var(--f-mono);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--ink);padding-bottom:6px;margin-bottom:4px}
+.mtitle b{font:400 16px var(--f-display);letter-spacing:.02em;color:var(--mag);text-shadow:1.5px 1.5px 0 var(--ink)}
+.mtitle span{color:var(--paper-mute)}
+.mapg{position:relative;width:100%;margin:0 auto}
+.mband{position:absolute;left:-34px;right:-18px;pointer-events:none}
+.mband.alt{background:rgba(21,11,46,.035)}
+.mband.boss{background:repeating-linear-gradient(-45deg,color-mix(in srgb,var(--mag) 10%,transparent) 0 10px,transparent 10px 20px)}
+.mtab{position:absolute;left:-8px;top:50%;translate:0 -50%;min-width:30px;padding:4px 6px;text-align:center;font:400 12px/1 var(--f-display);border:2px solid var(--ink);border-radius:3px 7px 7px 3px;background:#d9d1f2;color:var(--ink);box-shadow:2px 2px 0 var(--ink)}
+.mtab.done{background:var(--lime)} .mtab.now{background:var(--yel)} .mtab.boss{background:var(--mag);font-size:9px;letter-spacing:.04em;text-transform:uppercase}
+.mapg>svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.mapg line{vector-effect:non-scaling-stroke;stroke-linecap:round}
+.cas line{stroke:var(--ink);stroke-width:9} .cas line.past{stroke:#cfc6e8}
+.inn line{stroke:#fff;stroke-width:4} .inn line.past{stroke:#ebe6f8}
+.inn line.tk{stroke:var(--mag);stroke-width:5}
+.inn line.op{stroke:var(--yel);stroke-width:5;stroke-dasharray:7 7;animation:ants .8s linear infinite}
+@keyframes ants{to{stroke-dashoffset:-14}}
+.mnode{--tc:var(--vio);position:absolute;translate:-50% -50%;width:42px;height:42px;padding:0;border-radius:50%;background:var(--tc);color:var(--ink);border:3px solid var(--ink);display:grid;place-items:center;
+  box-shadow:0 0 0 4px #fff,0 0 0 6.5px var(--ink),3px 5px 0 6px rgba(21,11,46,.22);transition:scale .12s}
+.mnode svg{width:24px;height:24px;display:block}
+.mnode.t-fight{--tc:var(--mag)} .mnode.t-elite{--tc:var(--org)} .mnode.t-rest{--tc:var(--lime)} .mnode.t-shop{--tc:var(--yel)} .mnode.t-event{--tc:var(--cyan)}
+.mnode span{position:absolute;top:calc(100% + 10px);left:50%;translate:-50% 0;width:max-content;max-width:118px;font:700 10.5px/1.2 var(--f-mono);color:var(--ink);text-align:center;background:#fff;padding:2px 6px;border-radius:3px;box-shadow:0 0 0 1.5px var(--ink)}
+.mnode.t-boss{background:none;border:0;box-shadow:none;width:64px;height:78px;filter:drop-shadow(4px 5px 0 rgba(21,11,46,.3))}
+.mnode.t-boss svg{width:100%;height:100%;overflow:visible} .mnode text,.me text{font-family:var(--f-mono);font-weight:700}
+.mnode.t-boss span{top:calc(100% + 2px);background:var(--mag);font-family:var(--f-display);font-weight:400;font-size:11px;text-transform:uppercase;letter-spacing:.03em;max-width:160px}
+.mnode.done{background:var(--lime)}
+.mnode.off{filter:grayscale(1);opacity:.4}
+.mnode.next{cursor:pointer;z-index:2}
+.mnode.next::after{content:"";position:absolute;inset:-15px;border-radius:50%;border:3px solid var(--mag);animation:ring 1.3s ease-out infinite;pointer-events:none}
+.mnode.next:hover,.mnode.next:focus-visible{scale:1.15}
+.mnode.next span{background:var(--yel)}
+@keyframes ring{from{transform:scale(.7);opacity:1}to{transform:scale(1.35);opacity:0}}
+.mstart{position:absolute;translate:-50% -50%;font:400 11px var(--f-display);text-transform:uppercase;letter-spacing:.04em;background:var(--ink);color:var(--paper);padding:4px 10px;border-radius:999px;box-shadow:2px 2px 0 var(--mag);z-index:1}
+.me{position:absolute;width:34px;translate:calc(-100% - 30px) -58%;pointer-events:none;z-index:3;transform-origin:50% 100%;animation:sway 4s ease-in-out infinite;filter:drop-shadow(3px 4px 0 rgba(21,11,46,.35))}
+.me svg{width:100%;height:auto;display:block;overflow:visible}
+.mlegend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 14px;border-top:2px dashed rgba(21,11,46,.25);margin-top:6px;padding-top:10px;font:700 10.5px var(--f-mono);text-transform:uppercase;letter-spacing:.05em}
+.mlegend span{display:inline-flex;align-items:center;gap:6px}
+.mnode.mini{position:static;translate:none;width:20px;height:20px;border-width:2px;box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--ink)}
+.mnode.mini svg{width:13px;height:13px}
+@media (max-width:520px){.mnode span{max-width:92px;font-size:9.5px}.mapsheet{padding-left:30px;padding-right:12px}.mband{left:-30px;right:-12px}}
+.cards.mini{--cw:92px;gap:14px 12px}
+.pvw{position:relative;background:none;border:0;padding:0;flex:none;text-align:left;transition:transform .14s}
+.pvw .after{position:absolute;inset:0;opacity:0;transition:opacity .14s}
+.pvw .before{transition:opacity .14s}
+.pvw:hover,.pvw:focus-visible{transform:translateY(-6px)}
+.pvw:hover .after,.pvw:focus-visible .after{opacity:1}
+.pvw:hover .before,.pvw:focus-visible .before{opacity:0}
+@media (hover:none){.pvw .after{opacity:1}.pvw .before{opacity:0}}
+.msticker{position:absolute;right:.55em;bottom:2.4em;z-index:2;display:grid;place-items:center;text-align:center;width:4.4em;height:4.4em;border-radius:50%;border:.16em solid var(--ink);
+  font:400 .92em/1 var(--f-display);text-transform:uppercase;color:var(--ink);transform:rotate(-12deg);box-shadow:.18em .2em 0 var(--ink);pointer-events:none}
+.msticker.draw{background:var(--lime)}
+.msticker.fast{background:var(--yel);border-radius:.5em;transform:rotate(9deg)}
+.msticker.chg{animation:stickpop .5s ease-out;outline:.16em dashed var(--mag);outline-offset:.18em}
+@keyframes stickpop{0%{transform:rotate(-30deg) scale(1.6);opacity:0}100%{opacity:1}}
+mark.chg{background:var(--lime);color:var(--ink);border-radius:.2em;padding:0 .15em;box-shadow:0 0 0 .08em var(--ink)}
+.card .cost.chg{background:var(--lime)}
+.card .nm i.chg{box-shadow:0 0 0 .12em var(--ink)}
+.cards.mini .card{height:calc(var(--cw)*1.4);transform-origin:50% 100%;transition:transform .15s,box-shadow .15s;cursor:zoom-in}
+.cards.mini .card:hover{transform:scale(1.85);z-index:10;cursor:default}
+.cards.mini .card:first-child{transform-origin:0 100%}
+.cards.mini .card:last-child{transform-origin:100% 100%}
+.cards.mini .card .fl{display:none}
+
+/* Map: tickets */
+.dots{display:flex;gap:6px;align-items:center;font-family:var(--f-mono);font-weight:700;font-size:12px;color:var(--text-mute)}
+.dots i{width:24px;height:10px;background:var(--ink);border:2px solid var(--paper);display:block;transform:skewX(-14deg)}
+.dots i.done{background:var(--paper)} .dots i.now{background:var(--yel);border-color:var(--yel)}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:22px 18px;padding-top:10px}
+.opt{--tc:var(--vio);background:var(--paper);color:var(--ink);border:0;border-radius:5px 9px 6px 10px;padding:16px 14px 14px;text-align:left;display:flex;flex-direction:column;gap:6px;min-width:0;
+  box-shadow:5px 5px 0 var(--tc),10px 10px 0 var(--hard);transform:rotate(-1deg);transition:transform .12s;position:relative}
+.opt:nth-child(even){transform:rotate(1.2deg)}
+.opt:hover:not([disabled]){transform:rotate(0) translateY(-5px)}
+.opt .k{align-self:flex-start;font-family:var(--f-mono);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;background:var(--tc);color:var(--ink);
+  padding:2px 8px;border-radius:3px;margin-top:-26px;transform:rotate(-3deg);box-shadow:2px 2px 0 var(--ink)}
+.opt.t-fight,.opt.t-elite,.opt.t-boss{--tc:var(--mag)} .opt.t-rest{--tc:var(--lime)} .opt.t-shop{--tc:var(--yel)} .opt.t-event{--tc:var(--cyan)}
+.opt .n{font-family:var(--f-display);font-size:17px;line-height:1.12}
+.opt .s{font-size:13px;color:var(--paper-mute);font-weight:500}
+.opt .bp{width:92px;align-self:center;margin:2px 0 4px;filter:drop-shadow(4px 5px 0 var(--hard))}
+.opt .bp svg{width:100%;height:auto;display:block;overflow:visible}
+.opt .bp text{font-family:var(--f-mono);font-weight:700}
+.opt .s b{color:var(--ink)}
+.opt[disabled]{opacity:.5;cursor:not-allowed}
+
+/* Cards: stacked sheets, scissor-cut header band */
+.card{--tc:var(--mag);width:var(--cw,150px);height:calc(var(--cw,150px)*1.62);font-size:calc(var(--cw,150px)*.08);flex:none;
+  background:var(--paper);color:var(--ink);border:0;border-radius:.5em .3em .6em .35em;padding:0 0 .55em;
+  box-shadow:.3em .3em 0 var(--tc),.62em .66em 0 var(--hard);font-family:var(--f-ui);text-align:left;
+  display:grid;grid-template-rows:auto auto 1fr auto auto;gap:.3em;position:relative;transition:transform .14s;overflow:hidden}
+.card.t-skl{--tc:var(--cyan)} .card.t-pwr{--tc:var(--yel)} .card.t-sts{--tc:var(--vio)}
+.card .top{background:var(--tc);padding:.45em .6em .95em;display:flex;justify-content:space-between;align-items:center;gap:.4em;
+  clip-path:polygon(0 0,100% 0,100% 78%,93.75% 100%,87.5% 78%,81.25% 100%,75% 78%,68.75% 100%,62.5% 78%,56.25% 100%,50% 78%,43.75% 100%,37.5% 78%,31.25% 100%,25% 78%,18.75% 100%,12.5% 78%,6.25% 100%,0 78%)}
+.card.r-2 .top{background:linear-gradient(100deg,var(--mag),var(--yel) 50%,var(--cyan))}
+.card .cost{width:2em;height:2em;background:var(--paper);color:var(--ink);border:.14em solid var(--ink);border-radius:46% 54% 50% 50%/52% 46% 54% 48%;
+  display:grid;place-items:center;font-family:var(--f-display);font-size:1.05em;transform:rotate(-7deg);box-shadow:.12em .14em 0 var(--ink);flex:none}
+.card .ref{font-family:var(--f-mono);font-size:.68em;font-weight:700;text-align:right;line-height:1.1}
+.card .nm{font-family:var(--f-display);font-size:.95em;line-height:1.06;padding:0 .65em}
+.card .nm i{font-family:var(--f-mono);font-style:normal;font-weight:700;font-size:.72em;background:var(--lime);padding:0 .3em;border-radius:.2em;margin-left:.3em;white-space:nowrap}
+.card .tx{font-size:.9em;line-height:1.3;padding:0 .7em;overflow:hidden;font-weight:500}
+.card .tx b{font-weight:700;background:linear-gradient(transparent 58%,color-mix(in srgb,var(--tc) 60%,transparent) 58%)}
+.card .ft{display:flex;justify-content:space-between;padding:0 .75em;font-family:var(--f-mono);font-size:.66em;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--paper-mute)}
+.card .fl{font-size:.74em;line-height:1.28;font-style:italic;color:var(--paper-mute);padding:.4em .75em 0;margin:0 .1em;border-top:1px dashed color-mix(in srgb,var(--paper-mute) 55%,transparent)}
+.hand .card{height:calc(var(--cw)*1.4)}
+.hand .card .fl{display:none}
+.lore{display:none;position:absolute;left:50%;bottom:calc(100% + 10px);transform:translateX(-50%) rotate(-1.5deg);width:210px;z-index:30;pointer-events:none;
+  background:var(--yel);color:var(--ink);font:500 12.5px/1.35 var(--f-ui);padding:7px 10px;border:2px solid var(--ink);border-radius:5px 8px 6px 9px;box-shadow:4px 4px 0 var(--hard)}
+.slot:hover .lore,.slot.sel .lore{display:block}
+.lore i{display:block;font-style:normal;font-size:11.5px;margin-top:5px;padding-top:5px;border-top:1px dashed var(--ink)}
+.lore.show{display:block;position:static;transform:rotate(1deg);width:230px}
+.lore.show i:first-child{margin-top:0;padding-top:0;border-top:0}
+.briefwrap{position:absolute;top:0;left:0;right:0;z-index:15;pointer-events:none;min-height:0}
+.briefwrap .brief{pointer-events:auto}
+.brief{background:var(--paper);color:var(--ink);border-radius:5px 9px 6px 10px;padding:10px 14px;box-shadow:5px 5px 0 var(--cyan),10px 10px 0 var(--hard);font-size:13px;line-height:1.4;
+  max-width:720px;margin:2px auto 6px;transform:rotate(-.4deg);display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center}
+.brief>b{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;background:var(--cyan);padding:1px 8px;border-radius:3px}
+.brief p{flex:1 1 280px;max-width:none;margin:0}
+.brief p i{font-style:normal;font-weight:700}
+.card.no{filter:grayscale(.75) brightness(.78)}
+button.card:hover{transform:translateY(-5px) rotate(-1.5deg)}
+.cards{display:flex;flex-wrap:wrap;gap:20px 18px;justify-content:center;--cw:min(160px,calc((100vw - 96px)/2));padding:4px 8px 10px 0}
+.cards>.card:nth-child(odd),.priced:nth-child(odd){transform:rotate(-1.2deg)} .cards>.card:nth-child(even),.priced:nth-child(even){transform:rotate(1deg)}
+.cards>button.card:hover{transform:translateY(-6px) rotate(0)}
+.priced{display:flex;flex-direction:column;align-items:center;gap:12px}
+.priced .price{font-family:var(--f-mono);font-size:12px;font-weight:700;background:var(--yel);color:var(--ink);padding:1px 8px;border-radius:3px;box-shadow:2px 2px 0 var(--hard)}
+.priced.sold{opacity:.25;pointer-events:none}
+
+/* Combat: puppets on sticks */
+.combat{height:100%;min-height:0;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;gap:8px;position:relative}
+.field{display:flex;flex-direction:row-reverse;gap:14px;align-items:flex-end;justify-content:center;min-height:0;padding-bottom:clamp(8px,4vh,40px)}
+.foes{flex:1;min-width:0;display:flex;gap:10px;justify-content:center;align-items:flex-end}
+.unit{--pw:clamp(64px,min(19vw,21vh),300px);display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;position:relative}
+.foe{flex:0 1 calc(var(--pw) + 40px);padding:6px;border:3px dashed transparent;border-radius:10px;cursor:default}
+.foe.boss{--pw:clamp(90px,min(26vw,28vh),420px)}
+.foe.tgt{border-color:var(--yel);cursor:crosshair;background:color-mix(in srgb,var(--yel) 12%,transparent)}
+.pup{width:min(var(--pw),100%);transform-origin:50% 100%;animation:sway 4s ease-in-out infinite;filter:drop-shadow(5px 6px 0 var(--hard))}
+.pup svg{width:100%;height:auto;display:block;overflow:visible}
+.pup text{font-family:var(--f-mono);font-weight:700}
+.hit .pup{animation:flip .5s ease-out}
+.foe.acting .pup{animation:lunge .5s ease-in-out}
+.foe.dead{pointer-events:none}
+.foe.dead .pup{animation:fall .55s ease-in forwards}
+.foe.dead>:not(.pup){opacity:0}
+.unit .name{font-family:var(--f-display);font-size:14px;text-align:center;line-height:1.1;text-shadow:2px 2px 0 var(--ink),-1px -1px 0 var(--ink),2px -1px 0 var(--ink),-1px 2px 0 var(--ink)}
+.intent{font-family:var(--f-mono);font-size:11.5px;text-align:center;line-height:1.25;display:flex;flex-direction:column;align-items:center;gap:2px;margin-bottom:6px}
+.intent b{position:relative;background:var(--paper);color:var(--ink);border-radius:8px 10px 9px 11px;padding:3px 10px;box-shadow:3px 3px 0 var(--hard);transform:rotate(-2deg)}
+.intent b::after{content:"";position:absolute;left:50%;top:100%;margin-left:-6px;border:6px solid transparent;border-top:8px solid var(--paper);border-bottom:0}
+.intent.k-atk b{background:var(--mag)} .intent.k-atk b::after{border-top-color:var(--mag)}
+.intent em{font-style:normal;font-size:10.5px;font-weight:700;color:var(--yel);order:-2;text-shadow:1px 1px 0 var(--ink),-1px 1px 0 var(--ink),1px -1px 0 var(--ink),-1px -1px 0 var(--ink)}
+.intent span{color:var(--text);font-size:10.5px;font-weight:700;text-shadow:1px 1px 0 var(--ink),-1px 1px 0 var(--ink),1px -1px 0 var(--ink),-1px -1px 0 var(--ink);order:-1}
+.hpbar{width:100%;max-width:max(170px,calc(var(--pw,170px) + 10px));height:19px;background:var(--paper);border:2px solid var(--ink);border-radius:3px 6px 4px 7px;position:relative;font-family:var(--f-mono);font-size:11px;color:var(--ink);box-shadow:3px 3px 0 var(--hard);overflow:hidden}
+.hpbar i{position:absolute;inset:0 auto 0 0;background:var(--mag);transition:width .25s;clip-path:polygon(0 0,100% 0,calc(100% - 5px) 100%,0 100%)}
+.you .hpbar i{background:var(--lime)}
+.hpbar span{position:absolute;inset:0;display:grid;place-items:center;font-weight:700;font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;min-height:21px}
+.chip{font-family:var(--f-mono);font-weight:700;font-size:10.5px;padding:0 6px;border:2px solid var(--ink);border-radius:9px 7px 10px 8px;background:var(--paper);color:var(--ink);cursor:help;white-space:nowrap;transform:rotate(-2deg)}
+.chip:nth-child(even){transform:rotate(2deg)}
+.chip.blk{background:var(--cyan)} .chip.bad{background:var(--mag)} .chip.buf{background:var(--lime)}
+.you{flex:0 0 calc(var(--pw) + 40px)}
+.bar{display:flex;align-items:center;gap:8px;font-family:var(--f-mono);font-weight:700;font-size:12px;flex-wrap:wrap;border-top:2px dashed color-mix(in srgb,var(--paper) 55%,transparent);padding-top:10px;position:relative}
+.bar::before{content:"✂";position:absolute;top:-13px;left:10px;font-size:17px;line-height:1;color:var(--paper)}
+.orb{background:var(--yel);color:var(--ink);border:3px solid var(--ink);border-radius:50%;width:66px;height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 9px var(--f-mono);text-transform:uppercase;box-shadow:3px 3px 0 var(--mag),5px 5px 0 var(--hard);transform:rotate(-2deg);cursor:help}
+.orb b{font-family:var(--f-display);font-weight:400;font-size:20px;line-height:1.05}
+.table{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:end;border-top:2px dashed color-mix(in srgb,var(--paper) 55%,transparent);padding-top:6px;position:relative}
+.table::before{content:"✂";position:absolute;top:-13px;left:10px;font-size:17px;line-height:1;color:var(--paper)}
+.side{display:flex;flex-direction:column;align-items:center;gap:14px;padding-bottom:18px}
+.pile{width:48px;height:62px;padding:0;border:2px solid var(--ink);border-radius:5px 3px 6px 4px;background:var(--cyan);color:var(--ink);font:700 8.5px var(--f-mono);text-transform:uppercase;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:3px 3px 0 var(--paper),6px 6px 0 var(--hard);transform:rotate(-5deg)}
+.pile b{font-family:var(--f-display);font-weight:400;font-size:19px;line-height:1}
+.side.r .pile{background:var(--vio);transform:rotate(5deg)}
+.pile:hover{transform:rotate(0) translateY(-3px)}
+.bar .sp{flex:1}
+.pile,.hint{color:var(--text);text-shadow:1px 1px 0 var(--ink)}
+.hint{opacity:.8;font-size:11.5px}
+.hand{--cw:clamp(92px,min(12.5vw,19vh),150px);display:flex;justify-content:center;align-items:flex-end;height:calc(var(--cw)*1.4 + 46px);padding:26px 10px 20px 0}
+.slot{flex:1 1 0;min-width:0;max-width:calc(var(--cw) + 8px);position:relative;transform:translateY(var(--y,0)) rotate(var(--r,0deg));transition:transform .12s}
+.slot:last-child{flex:0 0 var(--cw)}
+.slot:hover,.slot.sel{z-index:5;transform:translateY(-12px) rotate(0)}
+.slot.sel{transform:translateY(-22px) rotate(0)}
+.slot.sel .card{outline:3px solid var(--yel);outline-offset:2px}
+.slot button.card:hover{transform:none}
+.preview{position:absolute;left:50%;bottom:calc(clamp(92px,min(12.5vw,19vh),150px)*1.4 + 92px);transform:translateX(-50%) rotate(-2deg);z-index:20;pointer-events:none;--cw:160px;
+  display:flex;flex-direction:column;align-items:center;gap:12px}
+.preview span{font:700 12px var(--f-mono);background:var(--yel);color:var(--ink);padding:3px 10px;border-radius:3px;box-shadow:3px 3px 0 var(--hard)}
+@media (max-height:600px) and (min-width:560px){
+  .col{margin:2px auto 10px;gap:10px;padding:12px 18px}
+  h2{font-size:clamp(18px,5.5vh,28px)}
+  .cards{--cw:min(132px,32vh)} .cards.mini{--cw:76px}
+  .opts{gap:16px 14px;padding-top:6px} .opt{padding:12px 12px 10px} .opt .n{font-size:15px} .opt .bp{width:52px}
+  .memo{display:grid;grid-template-columns:auto 1fr;gap:10px 26px;align-items:start;padding:16px 22px}
+  .memo .hdr{grid-column:1/-1} .memo .cut{grid-row:2/4;font-size:clamp(24px,8.5vh,46px)} .memo .go{gap:8px}
+  .memo .btn.big{padding:7px 12px;font-size:12px}
+  #app{gap:4px;padding-block:4px}
+  #hud{gap:4px 6px;font-size:11px} #hud .mark{font-size:15px} #hud .btn,#hud .stat{padding:3px 8px;font-size:11px}
+  .unit{--pw:clamp(56px,min(16vw,20vh),180px)} .foe.boss{--pw:clamp(76px,min(22vw,25vh),220px)}
+  .unit{gap:2px} .unit .name{font-size:11px} .hpbar{height:15px;font-size:10px} .chips{min-height:0}
+  .intent{margin-bottom:3px} .intent b{padding:1px 6px;font-size:10.5px} .intent span{font-size:9.5px}
+  .field{padding-bottom:2px}
+  .hand{--cw:clamp(96px,min(14vw,34vh),150px);height:calc(var(--cw)*.86 + 22px);padding:12px 10px 10px 0}
+  .slot{--y:0px!important}
+  .hand .card{height:calc(var(--cw)*.86);font-size:calc(var(--cw)*.072)}
+  .hand .card .top{padding-bottom:.75em}
+  .intent span{display:none} .intent em{font-size:9.5px}
+  .foe.boss .name{white-space:nowrap}
+  .table{padding-top:2px} .side{gap:8px;padding-bottom:4px}
+  .orb{width:50px;height:50px} .orb b{font-size:15px} .pile{width:38px;height:48px} .pile b{font-size:14px}
+  #end-turn{padding:4px 9px;font-size:11.5px}
+  .preview{bottom:auto;top:4px;--cw:140px}
+  .brief{font-size:11.5px;padding:5px 10px;max-width:640px}
+  .brief .btn{padding:2px 8px;font-size:11px}
+}
+.turnhint{display:none}
+@media (orientation:portrait) and (max-width:600px) and (pointer:coarse){
+  .turnhint{display:flex;align-items:center;justify-content:center;gap:8px;font:700 11.5px var(--f-mono);color:var(--ink);background:var(--yel);padding:5px 10px;border-radius:4px;box-shadow:3px 3px 0 var(--hard);transform:rotate(-1deg);margin:0 auto;width:max-content;max-width:100%}
+}
+@media (max-width:720px){
+  .field{flex-direction:row-reverse;align-items:flex-end;justify-content:center;gap:4px;padding-bottom:8px}
+  .unit{--pw:min(36vw,25vh)} .foe.boss{--pw:min(52vw,32vh)}
+  .hand{--cw:clamp(100px,31vw,140px)}
+  .you{flex:0 0 32%} .foes{gap:4px}
+  .foe{padding:2px;flex:1 1 0;min-width:0} .unit .name{font-size:11px} .hpbar{height:17px;font-size:10px}
+  .intent b{padding:2px 6px;font-size:10.5px} .intent span{font-size:9.5px}
+  .combat{height:auto;min-height:100%}
+  .brief{font-size:12px;padding:7px 10px;gap:3px 8px;margin-bottom:2px}
+  .brief p{flex-basis:100%}
+  .brief .btn{padding:2px 8px;font-size:11px}
+  #hud{gap:5px 5px;font-size:10.5px} #hud .mark{font-size:14px} #hud .btn,#hud .stat{padding:3px 6px;font-size:10.5px;letter-spacing:.02em}
+  .table{grid-template-columns:1fr 1fr;row-gap:0}
+  .side{flex-direction:row;padding-bottom:0;gap:12px} .side.l{justify-self:start} .side.r{justify-self:end;order:2}
+  .hand{grid-column:1/-1;order:3}
+  .orb{width:54px;height:54px} .orb b{font-size:16px} .pile{width:40px;height:50px} .pile b{font-size:15px}
+}
+
+/* Reward, shop, misc */
+.panel{background:var(--paper);color:var(--ink);border-radius:5px 8px 6px 9px;padding:14px;display:flex;flex-direction:column;gap:10px;box-shadow:5px 5px 0 var(--cyan),10px 10px 0 var(--hard);margin-right:10px}
+.panel .muted{color:var(--paper-mute)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.relic{display:flex;gap:4px 10px;align-items:baseline;font-size:13.5px;flex-wrap:wrap}
+.relic b{font-family:var(--f-mono)}
+.http{font-family:var(--f-mono);font-size:13px;background:var(--ink);color:var(--lime);border:3px solid var(--paper);border-radius:5px 8px 6px 9px;padding:14px;white-space:pre-wrap;overflow-wrap:anywhere;box-shadow:6px 6px 0 var(--mag),11px 11px 0 var(--hard);margin-right:10px}
+.http .e{color:var(--mag);font-weight:700} .http .ok{color:var(--cyan);font-weight:700}
+
+#modal{position:fixed;inset:0;background:color-mix(in srgb,var(--ink) 80%,transparent);z-index:50;display:grid;place-items:center;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet{background:var(--ink2);border:3px solid var(--paper);border-radius:6px 10px 5px 9px;width:min(900px,100%);max-height:100%;overflow-y:auto;padding:16px;box-shadow:8px 8px 0 var(--hard)}
+.sheet>*+*{margin-top:16px}
+.sheet .head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.sheet dl{margin-bottom:0;display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:13.5px}
+.sheet dt{font-family:var(--f-mono);font-weight:700;color:var(--yel)} .sheet dd{margin:0}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 58px);transform:translateX(-50%) rotate(-1deg);background:var(--paper);color:var(--ink);
+  font:700 13px var(--f-mono);padding:7px 13px;border-radius:4px 7px 5px 8px;box-shadow:4px 4px 0 var(--cyan),8px 8px 0 var(--hard);z-index:60;max-width:min(92vw,520px);text-align:center;pointer-events:none}
+.float{position:fixed;z-index:40;pointer-events:none;font:400 24px var(--f-display);animation:rise 1s ease-out forwards;transform:translateX(-50%) rotate(-6deg);white-space:nowrap;
+  -webkit-text-stroke:5px var(--ink);paint-order:stroke fill}
+.float.dmg{color:var(--mag)} .float.blk{color:var(--cyan)} .float.info{color:var(--yel);font-size:14px;-webkit-text-stroke-width:4px} .float.heal{color:var(--lime)}
+.pup{width:min(calc(var(--pw) * var(--ps,1)),100%)}
+.pup.hang{transform-origin:50% 0;animation-name:dangle;animation-duration:3.2s}
+.pup.bob{animation-name:bob;animation-duration:2.6s}
+.hit .pup.pup{animation:flip .5s ease-out}
+.foe.acting .pup.pup{animation:lunge .5s ease-in-out}
+.foe.dead .pup.pup{animation:fall .55s ease-in forwards}
+.fxs{position:fixed;left:0;top:0;z-index:45;pointer-events:none;will-change:transform}
+.fxs>div{transform:translate(-50%,-50%);width:max-content;filter:drop-shadow(3px 4px 0 var(--hard))}
+.fxs svg{display:block}
+.stk{display:block;font:700 13px var(--f-mono);background:var(--c);color:var(--ink);border:2px solid var(--ink);border-radius:4px 7px 5px 8px;padding:1px 8px;white-space:nowrap}
+.fxbeam{position:fixed;left:0;top:0;z-index:44;pointer-events:none;transform-origin:0 50%;border:2px solid var(--ink);border-radius:6px}
+.fxring{position:fixed;left:0;top:0;z-index:44;pointer-events:none;width:130px;height:130px;margin:-65px 0 0 -65px;border:7px solid;border-radius:50%}
+.fxfull{position:fixed;inset:0;z-index:44;pointer-events:none}
+@keyframes dangle{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.libh{font:400 15px var(--f-display);color:var(--yel);margin:6px 0 0;letter-spacing:.02em}
+.cards.lib{--cw:132px;justify-content:flex-start}
+.libc{display:flex;flex-direction:column;align-items:center;gap:8px}
+.libc em{font:700 10.5px var(--f-mono);font-style:normal;text-transform:uppercase;letter-spacing:.06em;color:var(--text-mute)}
+.card.unk{background:var(--ink2);box-shadow:.3em .3em 0 var(--tc),.62em .66em 0 var(--hard);border:2px dashed color-mix(in srgb,var(--paper) 45%,transparent);place-items:center;grid-template-rows:1fr auto}
+.card.unk .q{font:400 3em var(--f-display);color:color-mix(in srgb,var(--paper) 55%,transparent)}
+.card.unk .ft{color:var(--text-mute);width:100%}
+:root{--threat:0}
+#bg{background:linear-gradient(color-mix(in srgb,#5c0a1e calc(var(--threat)*55%),#0f0726),color-mix(in srgb,#8a1030 calc(var(--threat)*60%),#2a1350));transition:background 1.2s}
+#bg svg{position:relative}
+#bg .alarm{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:calc(var(--threat)*.85);transition:opacity 1.2s;
+  background:radial-gradient(120% 70% at 50% 100%,rgba(255,30,60,.45),transparent 70%),linear-gradient(rgba(40,0,12,.55),rgba(120,0,25,.25))}
+#bg .beacon{opacity:0;transition:opacity .8s}
+#bg .beacon.on{opacity:1}
+#bg .beacon .halo{opacity:.0;transform-box:fill-box;transform-origin:center;animation:beacon 1.4s ease-in-out infinite;animation-delay:inherit}
+@keyframes beacon{0%,100%{opacity:.05;transform:scale(.6)}50%{opacity:.4;transform:scale(1)}}
+#bg .led{animation:led 2.6s steps(1) infinite}
+@keyframes led{0%,100%{opacity:.8}50%{opacity:.15}}
+@keyframes rise{0%{opacity:1;margin-top:0;scale:.5}15%{scale:1.25}30%{scale:1}100%{opacity:0;margin-top:-54px}}
+@keyframes sway{0%,100%{transform:rotate(-2.5deg)}50%{transform:rotate(2.5deg)}}
+@keyframes wob{from{transform:rotate(var(--r))}to{transform:rotate(calc(var(--r) * -1)) translateY(-3px)}}
+@keyframes flip{0%{transform:rotateY(0) scale(1)}40%{transform:rotateY(180deg) scale(.9)}100%{transform:rotateY(360deg) scale(1)}}
+@keyframes lunge{0%,100%{transform:translate(0,0) rotate(0)}45%{transform:translate(-22px,10px) rotate(-12deg)}}
+@keyframes fall{to{transform:perspective(400px) rotateX(86deg) translateY(20px);opacity:0}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;animation-iteration-count:1!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<div id="grain"></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><filter id="stk" x="-15%" y="-15%" width="130%" height="130%"><feMorphology in="SourceAlpha" operator="dilate" radius="3.2" result="d"/><feFlood flood-color="#f6f3ff"/><feComposite in2="d" operator="in" result="o"/><feMerge><feMergeNode in="o"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs></svg>
+<div id="app">
+  <header id="hud"></header>
+  <main id="stage"></main>
+</div>
+<div id="modal" hidden></div>
+<div id="toast" hidden></div>
+
+<script>
+'use strict';
+const $=(s,el=document)=>el.querySelector(s);
+const rnd=n=>Math.floor(Math.random()*n), pick=a=>a[rnd(a.length)];
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a};
+const TOUCH=matchMedia('(hover: none)').matches, REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const sleep=ms=>new Promise(r=>setTimeout(r,REDUCED?ms/3:ms));
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ROMAN=['I','II','III'];
+
+/* ---------- glossary ---------- */
+const KW={
+  Energy:'Spent to play cards. You get 3 a turn.',
+  Trust:'Your health. At 0 you lose.',
+  Shield:'Blocks damage. Yours goes away at the start of your turn.',
+  Exposed:'Takes 50% more damage.',
+  Throttled:'Deals 25% less damage.',
+  Misconfigured:'Gets 25% less Shield from cards.',
+  Revoked:'Loses that much Trust each turn, then drops by 1.',
+  'Key Strength':'Extra damage on every hit you deal.',
+  Escalation:'Extra damage on every hit this attacker deals.',
+  Exhaust:'Gone until the fight ends.',
+  Power:'Once played, it lasts the whole fight.',
+  Status:'A junk card. Gone when the fight ends.'
+};
+const STN={vuln:'Exposed',weak:'Throttled',frail:'Misconfigured',pois:'Revoked'};
+const PWN={meta:['Native Apps','Start of turn: gain {n} Shield.'],rev:['Refresh Rotation','Attackers that take Trust from you gain {n} Revoked.'],aoe:['JWT Best Practices','Start of turn: deal {n} damage to ALL attackers.'],mtls:['Mutual TLS','When attacked, deal {n} damage back.'],
+  rtr:['Server Metadata','Draw {n} extra each turn.'],bcp:['Security BCP','Shield from cards deals {n} damage to a random attacker.'],
+  o21:['OAuth 2.1','Bearer Token and Validate Signature cost 0.']};
+
+/* ---------- combat helpers used by cards ---------- */
+let R=null,G=null,S={scr:'title'},busy=false,sel=null,fxq=[],SH=null,RW=null,EV=null,NODE=null,pickCb=null,M=null;
+const has=id=>R.relics.includes(id);
+const alive=()=>G.enemies.filter(e=>!e.dead);
+const calc=(b,a,dst)=>Math.max(0,Math.floor((b+(a.str||0))*(a.weak?.75:1)*(dst&&dst.vuln?1.5:1)));
+const fx=(who,txt,cls)=>fxq.push({who,txt,cls});
+function hitE(e,d){ if(!e||e.dead)return; const ab=Math.min(e.block,d); e.block-=ab; let r=d-ab;
+  e.hp-=r; e.flash=1;
+  fx('e'+e.uid,r?'-'+r:'blocked',r?'dmg':'blk');sfx(r?'hit':'block'); if(e.hp<=0){e.hp=0;e.dead=1;fx('e'+e.uid,'access_denied','info')} }
+function A(t,base,n=1,mult=1){ for(let i=0;i<n;i++){ if(!t||t.dead)return; hitE(t,calc(base,{...G.p.st,str:(G.p.st.str||0)*mult},t.st)) } }
+function AA(base){ alive().forEach(e=>A(e,base)) }
+function B(n){ const v=Math.round(n*(G.p.st.frail?.75:1)); G.p.block+=v; fx('you','+'+v+' Shield','blk');sfx('block');
+  if(G.p.pw.bcp){const al=alive(); if(al.length)hitE(pick(al),G.p.pw.bcp)} }
+function Sx(t,k,n){ if(t&&!t.dead){t.st[k]=(t.st[k]||0)+n; fx('e'+t.uid,'+'+n+' '+STN[k],'info')} }
+function SA(k,n){ alive().forEach(e=>Sx(e,k,n)) }
+function drawN(n){ for(let i=0;i<n;i++){ if(G.hand.length>=10)break;
+  if(!G.draw.length){ if(!G.discard.length)break; G.draw=shuffle(G.discard); G.discard=[] } G.hand.push(G.draw.pop()) } }
+const pw=(k,n)=>{G.p.pw[k]=(G.p.pw[k]||0)+n};
+const mk=id=>({id,k:'t'+Math.random()});
+
+/* ---------- cards ---------- */
+const ks=()=>S.scr==='combat'&&G?(G.p.st.str||0):0,ksv=(b,k)=>S.scr==='combat'&&G?calc(b,{...G.p.st,str:(G.p.st.str||0)*k}):b;
+const C={};
+const def=(id,name,ref,type,rar,cost,o)=>C[id]={id,name,ref,type,rar,cost,...o};
+// starters
+def('bearer','Bearer Token','RFC 6750','atk',-1,1,{tgt:1,txt:(u,d)=>`Deal ${d(u?9:6)} damage.`,fn:(c,t)=>A(t,c.u?9:6)});
+def('redirect','Validate Signature','RFC 7515 §5.2','skl',-1,1,{txt:(u,d,b)=>`Gain ${b(u?9:6)} Shield.`,fn:c=>B(c.u?9:6)});
+def('secret','Client Secret','RFC 6749 §2.3.1','atk',-1,2,{tgt:1,txt:(u,d)=>`Deal ${d(u?10:8)} damage. Apply ${u?3:2} Exposed.`,fn:(c,t)=>{A(t,c.u?10:8);Sx(t,'vuln',c.u?3:2)}});
+def('implicit','Implicit Grant','RFC 6749 §4.2','atk',-1,1,{tgt:1,txt:(u,d)=>`Deal ${d(u?13:10)} damage. Add a Leaked Token to your discard pile.`,fn:(c,t)=>{A(t,c.u?13:10);G.discard.push(mk('leak'))}});
+def('ropc','Password Grant','RFC 6749 §4.3','atk',-1,1,{tgt:1,txt:(u,d)=>`Deal ${d(u?15:12)} damage. You become Exposed for 1 turn.`,fn:(c,t)=>{A(t,c.u?15:12);G.p.st.vuln=(G.p.st.vuln||0)+1}});
+// common
+def('cc','Client Credentials','RFC 6749 §4.4','atk',0,0,{tgt:1,txt:(u,d)=>`Deal ${d(u?6:4)} damage.`,fn:(c,t)=>A(t,c.u?6:4)});
+def('pkce','PKCE','RFC 7636','skl',0,1,{txt:(u,d,b)=>`Gain ${b(u?7:5)} Shield. Until your next turn, attackers that hit you take ${u?7:5} damage.`,fn:c=>{B(c.u?7:5);G.p.spike=(G.p.spike||0)+(c.u?7:5)}});
+def('jwt','JSON Web Token','RFC 7519','atk',0,1,{tgt:1,txt:(u,d)=>`Header, payload, signature. Deal ${d(u?4:3)} damage 3 times.`,fn:(c,t)=>A(t,c.u?4:3,3)});
+def('state','State Parameter','RFC 6749 §10.12','skl',0,1,{tgt:1,txt:(u,d,b)=>`Gain ${b(u?9:7)} Shield. Apply ${u?2:1} Throttled.`,fn:(c,t)=>{B(c.u?9:7);Sx(t,'weak',c.u?2:1)}});
+def('introspect','Token Introspection','RFC 7662','skl',0,0,{tgt:1,txt:u=>`Apply ${u?2:1} Exposed. Draw 1 card.`,fn:(c,t)=>{Sx(t,'vuln',c.u?2:1);drawN(1)}});
+def('revoke','Token Revocation','RFC 7009','skl',0,1,{tgt:1,txt:u=>`Apply ${u?8:5} Revoked.`,fn:(c,t)=>Sx(t,'pois',c.u?8:5)});
+def('native','Native Apps','RFC 8252','pwr',1,1,{txt:u=>`At the start of your turn, gain ${u?5:3} Shield.`,fn:c=>pw('meta',c.u?5:3)});
+def('device','Device Grant','RFC 8628','atk',0,1,{tgt:1,txt:(u,d)=>`Deal ${d(u?10:7)} damage. Next turn, draw ${u?2:1} extra.`,fn:(c,t)=>{A(t,c.u?10:7);G.next.d+=c.u?2:1}});
+def('jwe','JSON Web Encryption','RFC 7516','skl',0,2,{txt:(u,d,b)=>`Gain ${b((u?14:10)+3*ks())} Shield: ${u?14:10}, plus 3 per Key Strength.`,fn:c=>B((c.u?14:10)+3*(G.p.st.str||0))});
+def('ratelimit','429 Too Many Requests','RFC 6585 §4','skl',0,1,{txt:u=>`Apply ${u?3:2} Throttled to ALL attackers.`,fn:c=>SA('weak',c.u?3:2)});
+def('jwtbcp','JWT Best Practices','RFC 8725','pwr',1,1,{txt:u=>`At the start of your turn, deal ${u?6:4} damage to ALL attackers.`,fn:c=>pw('aoe',c.u?6:4)});
+def('jti','jti Claim','RFC 7519 §4.1.7','skl',0,0,{ex:1,txt:(u,d,b)=>`Single use. Gain ${b(u?11:8)} Shield. Exhaust.`,fn:c=>B(c.u?11:8)});
+// uncommon
+def('s256','S256 Challenge','RFC 7636 §4.2','atk',1,1,{tgt:1,txt:u=>`Deal damage equal to your Shield, then lose ${u?'half':'all'} of that Shield.`,fn:(c,t)=>{A(t,G.p.block);G.p.block=c.u?Math.ceil(G.p.block/2):0}});
+def('dpop','DPoP','RFC 9449','skl',1,2,{tgt:1,txt:(u,d,b)=>`Gain ${b(u?15:11)} Shield. Apply 2 Throttled.`,fn:(c,t)=>{B(c.u?15:11);Sx(t,'weak',2)}});
+def('jws','JSON Web Signature','RFC 7515','atk',1,1,{tgt:1,txt:u=>`Deal ${ksv(u?9:7,2)} damage. Key Strength counts twice.`,fn:(c,t)=>A(t,c.u?9:7,1,2)});
+def('rotate','Key Rotation','RFC 7517','skl',1,0,{txt:u=>`Discard your hand. Draw that many cards${u?' plus 1':''}.`,fn:c=>{const n=G.hand.length;G.discard.push(...G.hand);G.hand=[];drawN(n+(c.u?1:0))}});
+def('refresh','Refresh Token','RFC 6749 §6','skl',1,0,{ex:1,txt:u=>`Gain ${u?3:2} Energy. Exhaust.`,fn:c=>{G.energy+=c.u?3:2}});
+def('par','Pushed Authorization','RFC 9126','skl',1,1,{txt:(u,d,b)=>`Gain ${b(u?9:6)} Shield. Next turn, gain 1 extra Energy.`,fn:c=>{B(c.u?9:6);G.next.e+=1}});
+def('rar','Rich Authorization','RFC 9396','atk',1,'X',{tgt:1,txt:(u,d)=>`Spend all Energy. Deal ${d(u?9:7)} damage once per Energy spent.`,fn:(c,t,x)=>A(t,c.u?9:7,x)});
+def('exchange','Token Exchange','RFC 8693','skl',1,0,{txt:u=>`Exhaust every Status card in your hand. Draw ${u?3:2} cards.`,fn:c=>{const s=G.hand.filter(h=>C[h.id].type==='sts');G.hand=G.hand.filter(h=>C[h.id].type!=='sts');G.exhaust.push(...s);drawN(c.u?3:2)}});
+def('iss','Issuer Identification','RFC 9207','skl',1,1,{tgt:1,txt:(u,d,b)=>`Gain ${b(u?9:6)} Shield. Apply ${u?3:2} Exposed.`,fn:(c,t)=>{B(c.u?9:6);Sx(t,'vuln',c.u?3:2)}});
+def('stepup','Step-Up Authentication','RFC 9470','skl',1,1,{tgt:1,txt:u=>`Apply ${u?3:2} Throttled. If the target is Exposed, gain 1 Energy and draw 1 (once per turn).`,fn:(c,t)=>{const v=t.st.vuln;Sx(t,'weak',c.u?3:2);if(v&&G.su!==G.turn){G.su=G.turn;G.energy++;drawN(1)}}});
+def('assertion','JWT Bearer Assertion','RFC 7523','atk',1,2,{nf:1,tgt:1,txt:u=>{const b=u?14:12,k=u?4:3,v=S.scr==='combat'&&G?calc(b,{...G.p.st,str:(G.p.st.str||0)*k}):b;return `Deal ${v} damage. Key Strength counts ${k} times.`},fn:(c,t)=>A(t,c.u?14:12,1,c.u?4:3)});
+def('dcr','Dynamic Registration','RFC 7591','skl',1,1,{txt:u=>`Add ${u?3:2} Client Credentials to your hand. They Exhaust when played.`,fn:c=>{for(let i=0;i<(c.u?3:2);i++)if(G.hand.length<10)G.hand.push({...mk('cc'),tmp:1})}});
+def('algs','JSON Web Algorithms','RFC 7518','pwr',1,1,{txt:u=>`Gain ${u?3:2} Key Strength.`,fn:c=>{G.p.st.str=(G.p.st.str||0)+(c.u?3:2)}});
+def('meta','Server Metadata','RFC 8414','pwr',1,1,{ucost:0,txt:()=>`At the start of your turn, draw 1 extra card.`,fn:()=>pw('rtr',1)});
+def('mtls','Mutual TLS','RFC 8705','pwr',1,1,{txt:u=>`Whenever an attacker hits you, deal ${u?5:3} damage back.`,fn:c=>pw('mtls',c.u?5:3)});
+// rare
+def('rtr','Refresh Token Rotation','RFC 9700 §4.14','pwr',2,1,{txt:u=>`Whenever an attacker takes Trust from you, it gains ${u?3:2} Revoked.`,fn:c=>pw('rev',c.u?3:2)});
+def('bcp','Security BCP','RFC 9700','pwr',2,2,{ucost:1,txt:()=>`Whenever a card gives you Shield, deal 3 damage to a random attacker.`,fn:()=>pw('bcp',3)});
+def('o21','OAuth 2.1','draft-ietf-oauth-v2-1','pwr',2,2,{ucost:1,txt:()=>`Bearer Token and Validate Signature cost 0 for the rest of the fight.`,fn:()=>pw('o21',1)});
+def('gnap','GNAP','RFC 9635','atk',2,3,{tgt:1,txt:(u,d)=>`Deal ${d(u?38:28)} damage.`,fn:(c,t)=>A(t,c.u?38:28)});
+def('jar','Signed Request (JAR)','RFC 9101','skl',2,1,{ucost:0,ex:1,txt:()=>`Double your Shield. Exhaust.`,fn:()=>{fx('you','+'+G.p.block+' Shield','blk');G.p.block*=2;if(G.p.pw.bcp&&G.p.block){const al=alive();al.length&&hitE(pick(al),G.p.pw.bcp)}}});
+def('set','Security Event Token','RFC 8417','skl',2,1,{ucost:0,tgt:1,txt:()=>`Double the target's Revoked.`,fn:(c,t)=>{if(t.st.pois)Sx(t,'pois',t.st.pois)}});
+// status
+def('leak','Leaked Token','status','sts',-2,null,{txt:()=>`Unplayable. If this is in your hand at end of turn, lose 2 Trust.`});
+def('fatigue','Consent Fatigue','status','sts',-2,null,{txt:()=>`Unplayable. Takes up space in your hand.`});
+def('mixed','Mixed-Up Response','status','sts',-2,1,{ex:1,txt:()=>`Does nothing. Exhaust.`,fn:()=>{}});
+/* ---------- threat briefings: what each attack really is ---------- */
+const ELORE={
+ kiddie:'Runs other people\'s exploit tools without understanding them. Loud, common, and stopped by the basics.',
+ phish:'A fake login page that looks like yours. People type their password straight into it.',
+ redirector:'A login server that will redirect anywhere can be made to deliver login codes to an attacker\'s site.',
+ bot:'Tries username and password pairs leaked from other breaches, thousands a minute.',
+ csrf:'Tricks your browser into sending a request you never meant to make, riding on your own session.',
+ interceptor:'On a phone, a malicious app claims the same custom URL scheme and catches the login code. PKCE exists to defeat it.',
+ mixup:'When an app uses several login servers, this attack gets it to send one server\'s code to another.',
+ replayer:'Captures a valid token in transit and simply presents it again.',
+ ssrf:'Makes your server fetch a URL of its choosing, to reach internal systems you never exposed.',
+ clickjack:'Lays an invisible frame over a harmless page, so your click lands on Allow.',
+ hoarder:'Refresh tokens that never expire are worth stealing. This one collects them.',
+ scraper:'Reads tokens out of server logs and URLs, where they should never have been written.',
+ deputy:'A trusted service tricked into using its own authority on someone else\'s behalf.',
+ algnone:'Edits a token\'s header to claim it needs no signature, and hopes the server believes it.',
+ phisher:'A real consent screen for a malicious app. No password is stolen: you grant the access yourself.',
+ downgrade:'Strips the protection out of a login request so the server falls back to a weaker flow.',
+ keyconf:'Signs a forged token using the server\'s public key as though it were a shared secret.',
+ fixator:'Plants a session ID it already knows, then waits for you to log in with it.',
+ insider:'Already has access. The part of the threat model that firewalls do not cover.',
+ zeroday:'Sells flaws nobody has patched, because nobody else knows they exist.',
+ golden:'With a stolen signing key it can mint a valid token for anyone, with any permissions.'
+};
+function brief(){
+  if(G.turn!==1||G.brief)return'';
+  const ids=[...new Set(G.enemies.map(e=>e.id))];
+  return `<div class="brief"><b>Threat briefing</b>${ids.map(id=>`<p><i>${esc(E[id].name)}.</i> ${esc(ELORE[id]||'')}</p>`).join('')}<button class="btn" data-a="brief" aria-label="Dismiss briefing">Got it</button></div>`;
+}
+function kwNotes(c){
+  const t=C[c.id].txt(c.u,n=>n,n=>n);
+  return ['Exhaust','Exposed','Throttled','Misconfigured','Revoked','Key Strength'].filter(k=>t.includes(k)).map(k=>`<i><b>${k}:</b> ${KW[k]}</i>`).join('');
+}
+let AC=null,MUTE=false;try{MUTE=localStorage.getItem('scope-creep-mute')==='1'}catch(e){}
+function sfx(k){
+  if(MUTE)return;
+  try{
+    const v={play:[520,.05,'triangle',760],hit:[170,.11,'square',60],block:[900,.07,'sine',1250],hurt:[120,.2,'sawtooth',50],end:[320,.06,'sine',230],pick:[640,.08,'triangle',960],win:[523,.55,'triangle',1568],lose:[220,.7,'sawtooth',60]}[k];
+    if(!v)return;AC=AC||new(window.AudioContext||window.webkitAudioContext)();
+    const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type=v[2];o.frequency.setValueAtTime(v[0],t);o.frequency.exponentialRampToValueAtTime(v[3],t+v[1]);
+    g.gain.setValueAtTime(.06,t);g.gain.exponentialRampToValueAtTime(.001,t+v[1]);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+v[1]+.03);
+  }catch(e){}
+}
+
+/* ---------- flavor: what the real thing does ---------- */
+const LORE={
+ bearer:'Whoever holds it can use it, like cash. No proof of identity required.',
+ redirect:'Before trusting a token, the server checks its signature against a known key. A forged token fails here.',
+ secret:'A password for the app itself. Only apps that can keep it private should have one.',
+ implicit:'The old shortcut: the token comes back in the URL, where history and logs can see it.',
+ ropc:'The app collects your real password itself. It works, and it is deprecated because it defeats the point of OAuth.',
+ cc:'No user involved. A service signs in as itself to call another service.',
+ pkce:'The app proves it is the same one that started the login. A stolen code is useless, and trying it gives the thief away.',
+ jwt:'A token you can read: three base64 parts joined by dots, the last one a signature.',
+ state:'A random value sent out and checked on return, so nobody can forge the callback.',
+ introspect:'The API asks the server: is this token still good, and what may it do?',
+ revoke:'A way to tell the server a token is dead before it expires on its own.',
+ native:'Mobile apps should log in through the system browser, never an embedded web view. A standing habit that pays off every turn.',
+ device:'For TVs and consoles: show a short code, finish the login on your phone.',
+ jwe:'A token sealed so only the intended recipient can read it. The stronger the key, the stronger the seal.',
+ ratelimit:'The web\'s polite way of saying slow down. It blunts password guessing.',
+ jwtbcp:'Advice that applies to every token at once: pin the algorithm, check the audience, never trust the header.',
+ jti:'A unique ID on each token, so a copy presented a second time can be refused.',
+ s256:'The app commits to a SHA-256 hash first and reveals the secret behind it at the end. The reveal is what lands.',
+ dpop:'Ties a token to a key the app holds. A stolen copy is worth far less without the key.',
+ jws:'The signature format behind most tokens. It is exactly as strong as the key that signs it.',
+ rotate:'Publish new signing keys on a schedule, so an old leaked key stops being useful.',
+ refresh:'A long-lived credential the app trades in for fresh short-lived access tokens.',
+ par:'The app sends the login request server to server first. The browser carries only a reference.',
+ rar:'Ask for exactly what you need, such as one payment to one account, not a broad scope.',
+ exchange:'Swap one token for another, for instance when one service calls a second on your behalf. Hand in what you should not be holding.',
+ iss:'The response names the server that sent it, so a swapped response is caught and whoever swapped it stands out.',
+ stepup:'An API can demand a stronger login before a sensitive action. An attacker who cannot provide one is stalled.',
+ assertion:'The app signs a JWT with its private key instead of sending a shared secret.',
+ dcr:'Apps can register themselves with the server through an API. No admin form needed.',
+ algs:'The list of algorithms a token may be signed with. Choosing a strong one is most of the job.',
+ meta:'One well-known URL tells apps where every endpoint and key lives, so nothing has to be guessed.',
+ mtls:'Both sides present certificates, and a token can be tied to the client\'s certificate.',
+ rtr:'Each refresh token works once. Seeing one reused means theft, and the whole set is revoked.',
+ bcp:'A decade of real attacks, distilled into what you must and must not do.',
+ o21:'OAuth 2.0 with the unsafe options removed and PKCE required for everyone.',
+ gnap:'A ground-up redesign of delegated access that replaces OAuth rather than extending it. Expensive, and it lands hard.',
+ jar:'JAR signs the whole login request, so nothing in the URL can be tampered with. What you protect is protected twice.',
+ set:'A signed notice telling other systems that something happened, like an account being disabled.',
+ leak:'Tokens end up in logs, URLs and screenshots more often than anyone admits.',
+ fatigue:'Ask people to click Allow often enough and they stop reading.',
+ mixed:'A response from one server, mistaken for another\'s.'
+};
+const POOL=r=>Object.values(C).filter(c=>c.rar===r).map(c=>c.id);
+const TYPE={atk:'Attack',skl:'Skill',pwr:'Power',sts:'Status'};
+const FAMS={Grant:['cc','implicit','ropc','device','assertion','rar','gnap'],Credential:['bearer','jwt','secret'],Check:['redirect','pkce','s256','state','jti','par','jar','iss','dpop','stepup'],
+ Endpoint:['introspect','revoke','ratelimit','set','dcr'],Lifecycle:['refresh','exchange','rotate'],JOSE:['jws','jwe','algs'],Standard:['native','meta','rtr','bcp','o21','jwtbcp','mtls']},FAM={};
+for(const f in FAMS)FAMS[f].forEach(id=>FAM[id]=f);
+
+/* ---------- policies (passive items) ---------- */
+const P={
+  hsm:['Hardware Security Module','Start each fight with 1 Key Strength.'],
+  exact:['Exact-Match Redirects','Start each fight with 6 Shield.'],
+  threat:['Threat Model (RFC 6819)','Every attacker starts each fight with 2 Exposed.'],
+  oncall:['On-Call Rotation','Draw 2 extra cards on your first turn.'],
+  short:['Short-Lived Tokens','Gain 1 extra Energy on your first turn.'],
+  consent:['Consent Screen','Each fight, the first 8 Trust you would lose is prevented.'],
+};
+
+
+/* ---------- paper puppets: one hand-cut figure per character ---------- */
+const K={m:'#ff2e88',c:'#19d3f3',y:'#ffc914',l:'#9dff3a',v:'#b9a7ff',o:'#ff9a1f',i:'#150b2e',w:'#f6f3ff'};
+const SK=`stroke="${K.i}" stroke-width="2"`;
+const pg=(p,f,x='')=>`<polygon points="${p}" fill="${f}" ${x}/>`;
+const circ=(x,y,r,f,x2='')=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${f}" ${x2}/>`;
+const rc=(x,y,w,h,f,x2='')=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${f}" ${x2}/>`;
+const ln=(d,c,w=3,x='')=>`<path d="${d}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" ${x}/>`;
+const eye=(x,y,r=6,dx=1,dy=1)=>circ(x,y,r,K.w,SK)+circ(x+dx,y+dy,r*.45,K.i);
+const tx=(x,y,s,t,f=K.i)=>`<text x="${x}" y="${y}" font-size="${s}" fill="${f}" text-anchor="middle">${t}</text>`;
+const stickAt=(y=110)=>pg(`55,${y} 65,${y} 66,152 54,152`,'#e9c98f',`stroke="${K.i}" stroke-width="1.5"`);
+const sh=p=>pg(p,K.i,'opacity=".2"');
+const ell=(x,y,rx,ry,f,x2='')=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${f}" ${x2}/>`;
+const ART={
+ kiddie:()=>stickAt()+pg('24,62 96,62 104,116 16,116',K.l)+sh('24,62 96,62 97,71 23,71')+pg('60,8 86,26 92,64 28,64 34,26',K.l)+pg('44,30 76,30 80,58 40,58',K.i)
+  +pg('46,42 57,46 56,50 46,47',K.l)+pg('74,42 63,46 64,50 74,47',K.l)+ln('M52 64v12M68 64v12',K.w,2)+pg('32,84 88,84 92,113 28,113','#3b2a6b',SK)+tx(60,105,14,'&gt;_',K.l),
+ phish:()=>ln('M60 -6V16',K.w,2)+ln('M60 14v16a9 9 0 0 1-18 0',K.w,4)+pg('14,70 40,44 80,42 98,58 116,40 112,70 116,100 98,82 80,98 40,96',K.c)+sh('40,96 80,98 98,82 62,86 28,82')
+  +pg('58,44 72,26 80,42','#0fa6c4')+eye(38,64,9,-2,1)+ln('M16 74l14 5',K.i,3)+pg('54,60 92,57 93,78 55,81',K.w,SK)+tx(74,73,8,'LOGIN'),
+ redirector:()=>stickAt()+pg('60,6 114,60 60,114 6,60',K.o)+pg('60,17 103,60 60,103 17,60','none',`stroke="${K.i}" stroke-width="2.5"`)+ln('M46 90V66a14 14 0 0 1 28 0v8',K.i,7)+pg('62,72 86,72 74,90',K.i)
+  +eye(50,40,5,1,1)+eye(70,40,5,-1,1)+ln('M43 32l12 4M77 32l-12 4',K.i,3.5),
+ bot:()=>stickAt()+ln('M60 14V5',K.i,2.5)+circ(60,4,4,K.m,SK)+pg('12,58 28,56 28,66 21,68 21,88 10,88',K.v)+pg('108,58 92,56 92,66 99,68 99,88 110,88',K.v)+pg('38,100 53,100 53,116 34,116',K.v)+pg('67,100 82,100 86,116 67,116',K.v)
+  +pg('30,54 90,54 94,101 26,101',K.v)+pg('36,14 84,14 86,50 34,50',K.v)+sh('30,54 90,54 91,60 29,60')+pg('42,23 78,23 78,41 42,41',K.i)+rc(47,28,8,8,K.c)+rc(65,28,8,8,K.c)+rc(44,64,32,22,K.i)+tx(60,81,11,'****',K.y),
+ csrf:()=>stickAt()+pg('26,10 78,10 98,30 98,114 26,114','#ffc2dc')+pg('78,10 98,30 78,30','#e58fb4')+pg('26,34 98,34 98,54 26,54',K.i)+ell(46,44,7,4.5,K.w)+ell(76,44,7,4.5,K.w)+circ(47,44,2.5,K.i)+circ(75,44,2.5,K.i)
+  +rc(36,64,50,7,K.m)+rc(36,77,50,7,'#e58fb4')+rc(36,92,30,13,K.m,SK)+tx(51,102,7,'SUBMIT')+pg('100,56 109,52 117,96 110,100',K.m,SK)+pg('110,100 117,96 116,110',K.i),
+ interceptor:()=>stickAt()+pg('52,70 68,70 76,116 44,116','#b98a00')+circ(60,46,40,K.y)+circ(60,46,29,'none',SK)+ln('M60 46L98 8',K.i,3)+circ(98,8,5,K.m,SK)+eye(60,46,14,3,2)+ln('M44 30l30 5',K.i,4)
+  +pg('8,10 22,22 15,24 26,38 10,28 17,25',K.m)+pg('104,70 114,80 109,81 116,92 104,84 109,82',K.m),
+ mixup:()=>stickAt()+pg('60,34 20,4 34,42',K.c)+pg('60,34 100,4 86,42',K.m)+circ(20,5,5.5,K.y,SK)+circ(100,5,5.5,K.y,SK)+pg('60,32 28,40 24,80 60,112',K.c)+pg('60,32 92,40 96,80 60,112',K.m)
+  +ln('M60 34V110',K.w,2,'stroke-dasharray="4 4"')+ln('M34 62q8-10 16 0',K.i,4)+pg('70,54 88,62 86,70 70,66',K.i)+ln('M38 84q12 12 22 6',K.i,3.5)+ln('M60 92q12-8 22 2',K.i,3.5)
+  +pg('30,104 42,112 52,104 60,114 68,104 78,112 90,104 92,120 28,120',K.y),
+ replayer:()=>stickAt(96)+pg('10,30 110,26 112,96 8,100',K.m)+pg('20,38 100,35 101,72 19,75',K.w)+tx(60,47,7,'REPLAY x2')+circ(42,58,11,K.i)+circ(78,57,11,K.i)+circ(42,58,4,K.w)+circ(78,57,4,K.w)
+  +rc(53,52,14,10,'#3b2a6b')+pg('30,100 90,98 84,82 36,83','#c41564')+circ(46,91,2.5,K.i)+circ(74,90,2.5,K.i),
+ ssrf:()=>ln('M60 -6V30',K.w,2)+ln('M40 62L14 42L6 60M38 70L10 66L4 86M40 78L14 90L10 110M46 86L28 106L30 120M80 62L106 42L114 60M82 70L110 66L116 86M80 78L106 90L110 110M74 86L92 106L90 120',K.l,5)
+  +circ(60,80,26,K.l)+pg('54,70 66,70 60,80 66,92 54,92 60,80',K.m)+circ(60,46,17,'#6fd41a')+eye(53,45,5.5,0,1)+eye(67,45,5.5,0,1)+circ(46,36,2.5,K.i)+circ(74,36,2.5,K.i)+ln('M54 56l3 5M66 56l-3 5',K.w,2.5),
+ clickjack:()=>stickAt()+pg('30,50 96,58 110,116 22,112','#7a1f4d')+pg('40,18 40,104 58,86 70,114 84,108 72,82 98,82',K.o,SK)+eye(50,52,5.5,1,0)+eye(63,62,5.5,1,0)
+  +pg('24,20 58,10 60,18 26,28',K.i)+pg('31,3 50,-2 55,12 35,18',K.i)+pg('33,11 52,6 53,10 34,15',K.m),
+ hoarder:()=>stickAt()+pg('14,62 26,26 96,22 106,60','#b9770a')+pg('22,58 31,33 91,30 98,57',K.i)+eye(48,46,6.5,1,1)+eye(72,45,6.5,-1,1)+pg('16,66 104,66 100,114 20,114','#b9770a')+pg('16,66 104,66 103,77 17,77',K.y)
+  +[30,46,62,78,92].map((x,i)=>circ(x,61-(i%2)*3,8.5,K.y,SK)).join('')+tx(46,61,7,'RT')+tx(78,61,7,'RT')+rc(52,82,16,16,K.y,SK)+circ(60,89,2.5,K.i),
+ scraper:()=>stickAt()+pg('20,42 84,38 88,112 24,116',K.w)+ln('M30 84h46M31 94h40M32 104h44',K.i,2)+rc(30,72,44,7,K.y)+pg('78,74 88,66 114,96 104,104','#6a55c9',SK)
+  +circ(60,48,31,K.v,`stroke="${K.i}" stroke-width="3"`)+circ(60,48,23,'#eee9ff')+circ(63,50,11,K.i)+circ(59,46,3.5,K.w),
+ deputy:()=>stickAt()+pg('60,20 71.8,49.8 103.7,51.8 79,72.2 87,103.2 60,86 33,103.2 41,72.2 16.3,51.8 48.2,49.8',K.c)+[[103.7,51.8],[87,103.2],[33,103.2],[16.3,51.8]].map(p=>circ(p[0],p[1],4.5,K.w,SK)).join('')
+  +`<g transform="rotate(-10 60 22)">`+pg('30,24 90,24 98,32 22,32','#7a4a12')+pg('42,6 78,6 82,24 38,24','#7a4a12')+pg('40,18 80,18 81,24 39,24',K.y)+`</g>`
+  +ln('M45 56l9 9m0-9l-9 9',K.i,3.2)+eye(71,61,6,2,-2)+ln('M48 76q4-4 8 0t8 0t8 0',K.i,2.5)+tx(102,24,22,'?',K.y),
+ algnone:()=>stickAt()+`<path d="M24 60A36 42 0 0 1 96 60V112L84 100L72 114L60 100L48 114L36 100L24 112Z" fill="${K.m}"/>`+ell(46,50,7,10,K.i)+ell(74,50,7,10,K.i)+ell(60,70,5,6,K.i)
+  +pg('28,84 78,80 79,95 29,99',K.w,SK)+tx(53,93,7.5,'eyJ.eyJ.')+rc(81,80,13,14,'none',`stroke="${K.w}" stroke-width="2" stroke-dasharray="3 2.5"`),
+ phisher:()=>stickAt()+ln('M70 32Q62 2 34 12',K.i,3)+pg('6,6 36,2 38,18 8,22',K.l,SK)+tx(22,16,7.5,'Allow')+pg('104,56 122,40 117,74 122,106 104,90','#c96a00')+pg('68,31 84,13 93,33','#c96a00')
+  +`<path d="M10 70Q20 30 70 30Q112 34 112 74Q110 110 66 112Q22 112 10 70Z" fill="${K.o}"/>`+pg('12,70 60,63 62,97 30,101',K.i)+pg('16,70 22,80 28,69 34,79 40,68 46,78 52,66 57,76 60,63',K.w)
+  +pg('30,101 34,91 40,100 46,90 52,99 58,89 62,97',K.w)+eye(74,48,9,-3,2)+ln('M62 36l24 7',K.i,4),
+ downgrade:()=>stickAt()+pg('40,6 80,6 80,60 106,60 60,114 14,60 40,60',K.v)+sh('40,6 80,6 80,14 40,14')+eye(50,34,6,0,2)+eye(70,34,6,0,2)+ln('M43 25l13 4M77 25l-13 4',K.i,3.5)+ln('M50 48q10 7 20-2',K.i,3)
+  +tx(60,86,13,'1.0')+rc(86,88,26,20,K.y,SK)+ln('M92 88v-8a7 7 0 0 1 13-4',K.i,4)+circ(99,98,3,K.i),
+ keyconf:()=>stickAt()+pg('52,58 68,58 68,114 52,114',K.y)+pg('68,74 90,74 90,85 79,85 79,94 68,94',K.y)+pg('52,82 32,82 32,95 43,95 43,104 52,104',K.c)+circ(60,34,28,K.y)+circ(60,34,26,'none',`stroke="#b98a00" stroke-width="3"`)
+  +ln('M45 26l9 9m0-9l-9 9M66 26l9 9m0-9l-9 9',K.i,3.2)+ln('M48 48q4-4 8 0t8 0t8 0',K.i,2.5)+tx(102,70,9,'RS',K.w)+tx(20,80,9,'HS',K.w),
+ fixator:()=>stickAt()+circ(60,66,43,'#d99a4e')+circ(60,66,40,'none',`stroke="#a86a22" stroke-width="3"`)+[[34,48,5],[86,50,5],[38,88,4.5],[84,90,5],[60,100,4],[60,32,4.5]].map(p=>circ(p[0],p[1],p[2],'#5a3210')).join('')
+  +eye(49,62,6.5,1,1)+eye(72,62,6.5,-1,1)+ln('M42 54l12 3M79 54l-12 3',K.i,3)+ln('M46 78q14 12 30 0',K.i,3)+pg('86,6 108,13 104,24 82,17',K.c,SK)+pg('91,19 100,22 95,36 89,34',K.c,SK)+ln('M92 35L86 52',K.i,2.5)
+  +pg('10,98 46,93 48,108 12,113',K.c,SK)+tx(29,107,8,'SID=1'),
+ insider:()=>ln('M38 -6L55 24M82 -6L65 24',K.m,4)+pg('28,24 92,24 95,114 25,114',K.w)+rc(52,18,16,11,K.i)+rc(38,36,44,40,K.l,SK)+circ(52,52,3,K.i)+circ(68,52,3,K.i)+ln('M50 62q10 8 20 0',K.i,3)+tx(60,94,11,'ADMIN')+rc(40,100,40,5,'#cfc6ee'),
+ zeroday:()=>stickAt()+ln('M60 30Q64 10 84 12',K.o,3.5)+pg('84,2 88,9 96,8 90,14 94,22 86,18 80,24 81,15 74,10 82,9',K.y)+pg('50,28 70,28 72,40 48,40',K.v)+circ(60,76,38,'#3b2a6b')+circ(60,76,36,'none',`stroke="${K.v}" stroke-width="3"`)
+  +eye(46,66,6.5,1,1)+eye(74,66,6.5,-1,1)+circ(74,66,10,'none',`stroke="${K.y}" stroke-width="2"`)+ln('M84 68q8 12 2 26',K.y,1.5)+ln('M40 57l12 4M80 57l-12 4',K.w,3)+tx(60,98,14,'0day',K.y)+tx(12,50,18,'$',K.l)+tx(110,112,18,'$',K.l),
+ golden:()=>stickAt()+pg('30,36 24,6 44,22 60,2 76,22 96,6 90,36',K.o)+circ(24,6,4,K.m,SK)+circ(60,3,4,K.m,SK)+circ(96,6,4,K.m,SK)+circ(60,72,44,K.y)+circ(60,72,40,'none',`stroke="#b98a00" stroke-width="4"`)
+  +circ(60,72,33,'none',`stroke="#b98a00" stroke-width="1.5" stroke-dasharray="4 4"`)+pg('36,56 54,64 52,73 37,68',K.i)+pg('84,56 66,64 68,73 83,68',K.i)+pg('40,84 80,84 74,99 46,99',K.i)+pg('43,85 49,92 55,85 61,92 67,85 73,92 77,85',K.w)+tx(60,111,7.5,'scope=*'),
+ 'you-mobile':()=>stickAt()+pg('16,56 28,52 28,64 14,72',K.c)+pg('96,48 114,48 114,64 105,76 96,64',K.y,SK)+pg('30,6 90,6 94,114 26,114',K.c)+pg('36,16 84,16 87,98 33,98',K.i)+circ(50,44,5.5,K.l)+circ(70,44,5.5,K.l)
+  +ln('M48 58q12 10 24 0',K.l,3)+rc(40,74,10,10,K.m)+rc(55,74,10,10,K.y)+rc(70,74,10,10,K.c)+rc(50,104,20,4,K.i),
+ 'you-spa':()=>stickAt(104)+pg('10,20 110,16 112,106 8,110',K.w)+pg('10,20 110,16 110,33 10,37',K.l)+circ(20,28,3.5,K.m)+circ(30,27.6,3.5,K.y)+circ(40,27.2,3.5,K.c)+rc(52,21.5,50,8,K.w)
+  +tx(40,82,30,'&lt;')+tx(80,82,30,'&gt;')+tx(60,88,22,'/',K.m),
+ 'you-backend':()=>stickAt()+pg('28,8 92,8 96,114 24,114',K.w)+[16,40,64,88].map((y,i)=>rc(34,y,52,19,i?'#cfc6ee':K.i,SK)).join('')+rc(42,21,9,8,K.c)+rc(69,21,9,8,K.c)
+  +[[42,49,K.l],[50,49,K.m],[42,73,K.y],[50,73,K.l],[42,97,K.l],[50,97,K.l]].map(p=>circ(p[0],p[1],2.8,p[2])).join('')+ln('M62 46h18M62 52h18M62 70h18M62 76h18M62 94h18M62 100h18',K.i,1.5)
+};
+const HANG={ssrf:1,phish:1,insider:1},BOB={algnone:1,zeroday:1,replayer:1,fixator:1},SIZE={bot:.76,scraper:.9,kiddie:.95};
+const pupCache={};
+function puppet(id){return pupCache[id]||(pupCache[id]=`<svg viewBox="-8 -8 136 164" aria-hidden="true"><g filter="url(#stk)">${(ART[id]||ART.kiddie)()}</g></svg>`)}
+const pupHTML=(id,_,k)=>`<div class="pup ${HANG[id]?'hang':BOB[id]?'bob':''}" style="--ps:${SIZE[id]||1};animation-delay:-${((performance.now()/1000+k*.9)%4).toFixed(2)}s">${puppet(id)}</div>`;
+
+/* ---------- attack animations ---------- */
+const ICON={
+ coin:c=>circ(12,12,10,c,SK)+circ(12,12,5,'none',SK),
+ key:c=>circ(7,12,5.5,c,SK)+circ(7,12,1.6,K.i)+ln('M12.5 12H22v4M18 12v3',K.i,3),
+ hook:c=>ln('M14 1v14a5 5 0 0 1-10 0v-3l4 3',K.i,5.5)+ln('M14 1v14a5 5 0 0 1-10 0v-3l4 3',c,2.5),
+ bolt:c=>pg('14,1 4,14 11,14 9,23 20,9 13,9',c,SK),
+ bug:c=>ln('M4 6l4 4M20 6l-4 4M2 13h5M22 13h-5M4 21l4-4M20 21l-4-4',K.i,2)+ell(12,13,6.5,8,c,SK)+ln('M12 6v14',K.i,1.5),
+ cookie:()=>circ(12,12,10,'#d99a4e',SK)+circ(8,9,1.8,K.i)+circ(15,8,1.5,K.i)+circ(14,15,1.8,K.i)+circ(8,16,1.4,K.i),
+ cursor:c=>pg('5,2 5,20 10,15.5 13,23 16.5,21.5 13,14.5 20,14.5',c,SK+' stroke-linejoin="round"'),
+ mail:c=>rc(2,5,20,14,c,SK)+ln('M2 6l10 8l10-8',K.i,2),
+ bomb:c=>ln('M14 7q2-6 8-4',K.i,2)+circ(11,14,8.5,K.i)+circ(22,3,2.4,c),
+ scissors:c=>ln('M8 9L21 20M8 15L21 4',K.i,2.5)+circ(5,7,3.5,c,SK)+circ(5,17,3.5,c,SK),
+ lock:c=>ln('M7 11V8a5 5 0 0 1 10 0v3',K.i,3)+rc(4,11,16,11,c,SK),
+ tape:c=>rc(1,5,22,14,c,SK)+circ(8,12,3,K.w,SK)+circ(16,12,3,K.w,SK),
+ doc:c=>pg('5,1 15,1 20,6 20,23 5,23',c,SK)+ln('M8 10h8M8 14h8M8 18h5',K.i,1.5),
+ arrow:c=>pg('1,9 13,9 13,3 23,12 13,21 13,15 1,15',c,SK),
+ star:c=>pg('12,1 15,9 23,9 17,14 19,23 12,18 5,23 7,14 1,9 9,9',c,SK),
+ eye:c=>ell(12,12,11,7,K.w,SK)+circ(12,12,4.5,c,SK)+circ(12,12,1.8,K.i)};
+const sprite=(s,c)=>ICON[s]?`<svg viewBox="-2 -2 28 28" width="42" height="42">${ICON[s](c)}</svg>`:`<b class="stk" style="--c:${c}">${esc(s)}</b>`;
+function fxEl(html,cls){const d=document.createElement('div');d.className=cls||'fxs';d.innerHTML=cls?html:`<div>${html}</div>`;document.body.appendChild(d);return d}
+function pt(who){const el=$(`[data-u="${who}"] .pup`)||$(`[data-u="${who}"]`);if(!el)return null;const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height*.42,w:r.width}}
+const tr=(x,y,r=0,s=1)=>`translate(${x}px,${y}px) rotate(${r}deg) scale(${s})`;
+function burst(b,c){const d=fxEl(`<svg viewBox="-30 -30 60 60" width="96" height="96">${pg('0,-28 7,-9 27,-12 12,2 20,22 0,11 -20,22 -12,2 -27,-12 -7,-9',c,SK)}</svg>`);
+  d.animate([{transform:tr(b.x,b.y,0,.2),opacity:1},{transform:tr(b.x,b.y,40,1.2),opacity:1,offset:.6},{transform:tr(b.x,b.y,60,1.4),opacity:0}],{duration:300}).onfinish=()=>d.remove()}
+function shake(){$('#stage').animate([{transform:'translate(0,0)'},{transform:'translate(-9px,5px)'},{transform:'translate(8px,-4px)'},{transform:'translate(-5px,2px)'},{transform:'translate(0,0)'}],{duration:280})}
+function beamLine(a,b,c,w){const len=Math.hypot(b.x-a.x,b.y-a.y),ang=Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI,d=fxEl('','fxbeam'),t=`translate(${a.x}px,${a.y}px) rotate(${ang}deg)`;
+  d.style.cssText=`width:${len}px;background:${c};height:${w}px;margin-top:${-w/2}px`;
+  d.animate([{transform:t+' scaleX(0)',opacity:1},{transform:t+' scaleX(1)',opacity:1,offset:.4},{transform:t+' scale(1,.15)',opacity:0}],{duration:340}).onfinish=()=>d.remove()}
+const MOVES={
+ throw(a,b,h,c){const d=fxEl(h),up=Math.min(a.y,b.y)-70-Math.random()*30,spin=(b.x>a.x?1:-1)*(300+Math.random()*200);
+  d.animate([{transform:tr(a.x,a.y,0,.6)},{transform:tr((a.x+b.x)/2,up,spin/2,1.15),offset:.5},{transform:tr(b.x,b.y,spin,1)}],{duration:260}).onfinish=()=>{d.remove();burst(b,c)};return 250},
+ boom(a,b,h,c){const d=fxEl(h),s=b.x>a.x?1:-1;
+  d.animate([{transform:tr(a.x,a.y,0,.7)},{transform:tr(b.x,b.y-10,s*540,1.2),offset:.5},{transform:tr(a.x,a.y,s*1080,.7)}],{duration:480,easing:'ease-in-out'}).onfinish=()=>d.remove();setTimeout(()=>burst(b,c),235);return 235},
+ beam(a,b,h,c){beamLine(a,b,c,10);const s=fxEl(h);s.animate([{transform:tr(a.x,a.y,0,.8)},{transform:tr(b.x,b.y,0,1.1)}],{duration:150}).onfinish=()=>{s.remove();burst(b,c)};return 140},
+ zig(a,b,h,c){const n=7,p=[];for(let i=0;i<=n;i++){const t=i/n,j=i&&i<n?26:0;p.push((a.x+(b.x-a.x)*t+(Math.random()-.5)*j).toFixed(0)+','+(a.y+(b.y-a.y)*t+(Math.random()-.5)*j*2).toFixed(0))}
+  const d=fxEl(`<svg width="100%" height="100%"><polyline points="${p.join(' ')}" fill="none" stroke="${K.i}" stroke-width="12" stroke-linejoin="bevel"/><polyline points="${p.join(' ')}" fill="none" stroke="${c}" stroke-width="6" stroke-linejoin="bevel"/></svg>`,'fxfull');
+  d.animate([{opacity:1},{opacity:.15},{opacity:1},{opacity:1},{opacity:0}],{duration:320}).onfinish=()=>d.remove();
+  const s=fxEl(h);s.animate([{transform:tr(b.x,b.y-30,-8,.4),opacity:0},{transform:tr(b.x,b.y-40,-8,1.2),opacity:1,offset:.3},{transform:tr(b.x,b.y-56,-8,1.1),opacity:0}],{duration:560}).onfinish=()=>s.remove();
+  setTimeout(()=>burst(b,c),90);return 110},
+ slash(a,b,h,c){const L=b.w*.9,co=Math.cos(-.66),si=Math.sin(-.66);beamLine({x:b.x-L*co,y:b.y-L*si},{x:b.x+L*co,y:b.y+L*si},c,8);
+  const s=fxEl(h);s.animate([{transform:tr(b.x-L*co,b.y-L*si,-30,1)},{transform:tr(b.x+L*co,b.y+L*si,-30,1.2)}],{duration:200}).onfinish=()=>s.remove();setTimeout(()=>burst(b,c),110);return 120},
+ slam(a,b,h,c){const d=fxEl(h);d.animate([{transform:tr(b.x,b.y-10,-25,3.6),opacity:0},{transform:tr(b.x,b.y,-8,1.5),opacity:1,offset:.3},{transform:tr(b.x,b.y,-8,1.5),opacity:1,offset:.8},{transform:tr(b.x,b.y+6,-8,1.4),opacity:0}],{duration:660}).onfinish=()=>d.remove();
+  setTimeout(()=>burst(b,c),195);return 200},
+ drop(a,b,h,c){const d=fxEl(h),x=b.x+(Math.random()-.5)*24;
+  d.animate([{transform:tr(x,-70,-20,2.1)},{transform:tr(x,b.y,8,2.1)}],{duration:240,easing:'cubic-bezier(.6,0,1,.6)'}).onfinish=()=>{burst(b,c);shake();
+   d.animate([{transform:tr(x,b.y,8,2.1),opacity:1},{transform:tr(x,b.y+12,8,2.4),opacity:0}],{duration:280}).onfinish=()=>d.remove()};return 240},
+ rain(a,b,h,c){for(let i=0;i<3;i++){const d=fxEl(h),x=b.x+(i-1)*34+(Math.random()-.5)*16;
+  d.animate([{transform:tr(x,-40,0,.9)},{transform:tr(x,b.y+(Math.random()-.5)*30,120,.9)}],{duration:230,delay:i*55,fill:'backwards',easing:'ease-in'}).onfinish=()=>{d.remove();i||burst(b,c)}}return 230}
+};
+function selfFx(a,h,c){if(!a||REDUCED)return;const r=fxEl('','fxring');r.style.borderColor=c;
+  r.animate([{transform:tr(a.x,a.y,0,.3),opacity:1},{transform:tr(a.x,a.y,0,1.7),opacity:0}],{duration:520}).onfinish=()=>r.remove();
+  const d=fxEl(h);d.animate([{transform:tr(a.x,a.y,-10,.3),opacity:0},{transform:tr(a.x,a.y-34,-4,1.25),opacity:1,offset:.25},{transform:tr(a.x,a.y-44,-4,1.15),opacity:1,offset:.75},{transform:tr(a.x,a.y-72,-4,1),opacity:0}],{duration:780}).onfinish=()=>d.remove()}
+function runFx(m,s,ck,from,to){if(REDUCED)return 0;const a=pt(from),b=pt(to);if(!a||!b)return 0;return MOVES[m](a,b,sprite(s,K[ck]),K[ck])}
+const CFX={bearer:['throw','coin','m'],redirect:['self','sig ✓','c'],secret:['throw','key','y'],implicit:['beam','#access_token','o'],ropc:['throw','hunter2','y'],
+ cc:['throw','M2M','v'],pkce:['self','code_verifier ✓','c'],jwt:['throw',['header','payload','signature'],'m',3],state:['slam','state ≠','c'],introspect:['slam','eye','c'],revoke:['slam','REVOKED','m'],
+ native:['self','127.0.0.1','l'],device:['boom','WDJB-MJHT','v'],jwe:['self','lock','c'],ratelimit:['slam','429','o'],jwtbcp:['self','BCP 225','y'],jti:['self','jti: once','c'],
+ s256:['beam','SHA-256','c'],dpop:['slam','DPoP','y'],jws:['slash','signed','m'],rotate:['self','key','l'],refresh:['self','coin','l'],par:['self','request_uri','v'],
+ rar:['throw','doc','o','x'],exchange:['self','⇄ token','c'],iss:['slam','iss?','v'],stepup:['slam','acr ↑','o'],assertion:['drop','ASSERTION','y'],dcr:['self','client_id','l'],
+ algs:['self','ES256','y'],meta:['self','.well-known','c'],mtls:['self','lock','m'],rtr:['self','↻ RT','l'],bcp:['self','BCP 240','y'],o21:['self','2.1','m'],
+ gnap:['drop','GNAP','m'],jar:['self','JAR','c'],set:['slam','SET','v']};
+const FXMS={throw:250,boom:235,beam:140,zig:110,slash:120,slam:200,drop:240,rain:230};
+function cardFx(c,d,t,x){
+  const sp=CFX[c.id];if(!sp||REDUCED)return 0;const[m,s,ck,n,own]=sp;
+  if(m==='self'||own)selfFx(pt('you'),sprite(m==='self'?s:own,K[ck]),K[ck]);
+  if(m==='self')return 0;
+  const cnt=n==='x'?x:n||1,tg=d.tgt?[t]:alive();if(!cnt||!tg.length)return 0;
+  const me=$('[data-u="you"] .pup');me&&me.animate([{transform:'none'},{transform:'translate(20px,6px) rotate(10deg)'},{transform:'none'}],{duration:240});
+  tg.forEach(e=>{for(let i=0;i<cnt;i++)setTimeout(()=>runFx(m,Array.isArray(s)?s[i%s.length]:s,ck,'you','e'+e.uid),i*85)});
+  return FXMS[m];
+}
+const MFX={'Pasted exploit':['throw','bug','l'],'Tool spam':['throw','nmap -A','l'],'Reads the README':['throw','doc','l'],
+ 'Consent prompt spam':['self','Allow?','c'],'Lookalike login':['throw','hook','c'],'Harvest':['boom','mail','c'],
+ 'redirect_uri=//evil':['zig','//evil.io','o'],'Code in the Referer':['beam','Referer:','o'],'Bounce':['boom','arrow','o'],
+ 'Try password':['throw','hunter2','v'],'Try password1':['throw','password1','v'],'Rotate proxy':['self','new IP','v'],
+ 'Forged callback':['throw','mail','m'],'Login CSRF':['slam','<form>','m'],'Hidden iframe':['beam','<iframe>','m'],
+ 'Custom scheme hijack':['zig','myapp://','y'],'Replay the code':['throw','?code=','y'],'Register same scheme':['self','myapp://','y'],
+ 'Swap the issuer':['self','iss ⇄','c'],'Wrong token endpoint':['boom','/token?','c'],'Three tabs open':['rain','tab','m'],'Register a second IdP':['self','IdP #2','m'],
+ 'Captured bearer':['throw','tape','m'],'Replay':['boom','coin','m'],'Replay again':['rain','coin','m'],
+ 'Fetch jwks_uri':['beam','GET /jwks','l'],'Read metadata service':['self','169.254.169.254','l'],'Pivot':['zig','10.0.0.1','l'],
+ 'Invisible overlay':['slam','opacity: 0','o'],'Stolen click':['throw','cursor','o'],'Double click':['throw','cursor','y'],
+ 'Never expires':['self','exp: ∞','y'],'Mint':['throw','coin','y'],
+ 'Token in the URL':['self','?token=','v'],'Grep':['beam','grep eyJ','v'],'Exfiltrate':['boom','doc','v'],
+ 'Borrowed authority':['throw','star','c'],'Wrong audience':['slam','aud?','c'],'Act on your behalf':['drop','sudo','c'],
+ 'Strip the signature':['slash','scissors','m'],'Forge claims':['throw','admin: true','m'],'Edit the header':['self','alg: none','m'],
+ 'Verified-looking app':['self','✓ verified','o'],'Read your mail':['throw','mail','o'],'Ask for offline_access':['self','offline_access','o'],'Full mailbox sync':['rain','mail','o'],'Forwarding rules':['throw','arrow','o'],
+ 'Strip PKCE':['slash','no PKCE','v'],'Plain challenge':['drop','plain','v'],'Fallback':['throw','lock','v'],
+ 'Public key as secret':['self','HS256?','y'],'Sign anything':['throw','key','y'],'kid injection':['zig','kid: ../','y'],
+ 'Planted session':['throw','cookie','c'],'Hold the cookie':['slam','SID=1','c'],'Ride the session':['drop','cookie','c'],
+ 'Unpatched parser':['drop','bomb','v'],'Auction':['self','$$$','l'],'Chain three bugs':['throw','bug','v'],'Drop the PoC':['self','PoC.py','v'],
+ 'Steal the signing key':['self','key','y'],'Mint admin tokens':['throw','coin','y'],'Backdoor the JWKS':['self','jwks.json','y'],'scope=*':['drop','scope=*','y'],'Sign as anyone':['slash','key','y']};
+function moveFx(m,e){const f=MFX[m.n]||['throw','bolt','y'];if(REDUCED)return 0;
+  if(f[0]==='self'||!m.atk){selfFx(pt('e'+e.uid),sprite(f[0]==='self'?f[1]:m.n,K[f[2]]),K[f[2]]);return 0}
+  return runFx(f[0],f[1],f[2],'e'+e.uid,'you')}
+function pagesFx(e,n){if(REDUCED)return;const a=pt('e'+e.uid),el=$('.side.r .pile');if(!a||!el)return;const r=el.getBoundingClientRect(),b={x:r.left+r.width/2,y:r.top+r.height/2,w:r.width};
+  for(let i=0;i<n;i++)setTimeout(()=>MOVES.throw(a,b,sprite('doc',K.v),K.v),i*110)}
+
+function buildBg(){
+  let r=5;const rand=()=>(r=(r*16807)%2147483647)/2147483647,neon=['#19d3f3','#9dff3a','#ff2e88','#ffc914'];
+  const PS='filter="url(#ps)"';
+  let back='',racks='',cables='';const beacons=[];
+  for(let i=0;i<14;i++){const x=i*92-30,h=420+rand()*120;back+=`<rect x="${x}" y="${(700-h).toFixed(0)}" width="80" height="${h.toFixed(0)}" fill="#24124a"/>`}
+  for(let i=0;i<9;i++){
+    const x=i*140-20,h=290+rand()*170,top=700-h,col=i%2?'#2a1652':'#311a5e';
+    racks+=`<rect x="${x}" y="${top.toFixed(0)}" width="118" height="${h.toFixed(0)}" fill="${col}" ${PS}/><rect x="${x}" y="${top.toFixed(0)}" width="118" height="8" fill="#3d2275"/>`;
+    beacons.push(`<g class="beacon" style="animation-delay:-${(rand()*1.4).toFixed(2)}s"><rect x="${x+49}" y="${(top-16).toFixed(0)}" width="20" height="16" rx="3" fill="#5a0f22"/><circle cx="${x+59}" cy="${(top-16).toFixed(0)}" r="30" fill="#ff2e48" class="halo"/><circle cx="${x+59}" cy="${(top-14).toFixed(0)}" r="8" fill="#ff3550"/></g>`);
+    for(let y=top+18;y<676;y+=26){
+      racks+=`<rect x="${x+10}" y="${y.toFixed(0)}" width="98" height="18" fill="#1b0d3a"/><rect x="${x+62}" y="${(y+7).toFixed(0)}" width="38" height="3" fill="#2c1a55"/>`;
+      for(let k=0;k<3;k++)if(rand()<.62){const c=neon[Math.floor(rand()*4)],blink=rand()<.12;racks+=`<rect class="${blink?'led':''}" style="${blink?`animation-delay:-${(rand()*3).toFixed(2)}s`:''}" x="${x+16+k*9}" y="${(y+6).toFixed(0)}" width="5" height="5" fill="${c}" opacity=".8"/>`}
+    }
+  }
+  for(let i=0;i<6;i++){const x1=rand()*1200,x2=x1+90+rand()*220,y=50+rand()*130;cables+=`<path d="M${x1.toFixed(0)} -10 Q${((x1+x2)/2).toFixed(0)} ${(y+130).toFixed(0)} ${x2.toFixed(0)} -10" fill="none" stroke="#05020f" stroke-opacity=".35" stroke-width="9" transform="translate(5 5)"/><path d="M${x1.toFixed(0)} -10 Q${((x1+x2)/2).toFixed(0)} ${(y+130).toFixed(0)} ${x2.toFixed(0)} -10" fill="none" stroke="${['#ff2e88','#19d3f3','#ffc914'][i%3]}" stroke-width="8" stroke-opacity=".5"/>`}
+  $('#bg').innerHTML=`<div class="alarm"></div><svg viewBox="0 0 1200 700" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+   <defs><filter id="ps" x="-5%" y="-20%" width="110%" height="140%"><feDropShadow dx="7" dy="-6" stdDeviation="0" flood-color="#05020f" flood-opacity=".5"/></filter></defs>
+   ${back}${cables}${racks}${[1,7,4,2,6,0,5,8,3].map(i=>beacons[i]).join('')}<rect x="0" y="676" width="1200" height="24" fill="#120828"/>
+   ${[...Array(12)].map((_,k)=>`<rect x="${k*100}" y="684" width="60" height="4" fill="#2a1652"/>`).join('')}</svg>`;
+}
+
+/* ---------- attackers ---------- */
+const E={
+ kiddie:{name:'Script Kiddie',hp:40,seq:[{n:'Pasted exploit',atk:[7,1]},{n:'Tool spam',atk:[4,2]},{n:'Reads the README',atk:[5,1],blk:5}]},
+ phish:{name:'Phishing Kit',hp:44,seq:[{n:'Consent prompt spam',add:['fatigue',1],blk:6},{n:'Lookalike login',atk:[8,1]},{n:'Harvest',atk:[10,1]}]},
+ redirector:{name:'Open Redirector',hp:36,seq:[{n:'redirect_uri=//evil',atk:[5,1],vuln:2},{n:'Code in the Referer',atk:[9,1]},{n:'Bounce',atk:[6,1]}]},
+ bot:{name:'Stuffing Bot',hp:14,seq:[{n:'Try password',atk:[3,1]},{n:'Try password1',atk:[4,1]},{n:'Rotate proxy',str:1}]},
+ csrf:{name:'CSRF Creeper',hp:42,seq:[{n:'Forged callback',atk:[4,1],frail:2},{n:'Login CSRF',atk:[9,1]},{n:'Hidden iframe',atk:[5,1],blk:8}]},
+ interceptor:{name:'Code Interceptor',hp:82,seq:[{n:'Custom scheme hijack',atk:[11,1]},{n:'Replay the code',atk:[5,2],add:['leak',1]},{n:'Register same scheme',str:2,blk:8}]},
+ mixup:{name:'The Mix-Up Artist',hp:108,fixed:1,seq:[{n:'Swap the issuer',add:['mixed',2]},{n:'Wrong token endpoint',atk:[13,1]},{n:'Three tabs open',atk:[5,3]},{n:'Register a second IdP',str:2,blk:12}]},
+ replayer:{name:'Token Replayer',hp:62,seq:[{n:'Captured bearer',atk:[10,1]},{n:'Replay',atk:[5,2]},{n:'Replay again',atk:[5,3]}]},
+ ssrf:{name:'SSRF Spider',hp:58,seq:[{n:'Fetch jwks_uri',atk:[8,1],vuln:2},{n:'Read metadata service',blk:10,str:2},{n:'Pivot',atk:[12,1]}]},
+ clickjack:{name:'Clickjacker',hp:54,seq:[{n:'Invisible overlay',atk:[5,1],weak:2},{n:'Stolen click',atk:[11,1]},{n:'Double click',atk:[7,2]}]},
+ hoarder:{name:'Refresh Token Hoarder',hp:72,seq:[{n:'Never expires',str:2,blk:6},{n:'Mint',atk:[8,1]},{n:'Mint',atk:[8,1]}]},
+ scraper:{name:'Log Scraper',hp:34,seq:[{n:'Token in the URL',add:['leak',1]},{n:'Grep',atk:[7,1]},{n:'Exfiltrate',atk:[9,1]}]},
+ deputy:{name:'Confused Deputy',hp:125,seq:[{n:'Borrowed authority',atk:[9,1],blk:12},{n:'Wrong audience',atk:[10,1],weak:1},{n:'Act on your behalf',atk:[22,1]}]},
+ algnone:{name:'alg:none',hp:110,seq:[{n:'Strip the signature',strip:1,atk:[9,1]},{n:'Forge claims',atk:[8,2]},{n:'Edit the header',str:2,add:['leak',1]}]},
+ phisher:{name:'The Consent Phisher',hp:180,fixed:1,seq:[{n:'Verified-looking app',add:['fatigue',2],blk:10},{n:'Read your mail',atk:[9,2]},{n:'Ask for offline_access',str:3},{n:'Full mailbox sync',atk:[20,1]},{n:'Forwarding rules',atk:[6,3],vuln:2}]},
+ downgrade:{name:'Downgrade Attacker',hp:88,seq:[{n:'Strip PKCE',atk:[6,1],frail:2,vuln:2},{n:'Plain challenge',atk:[15,1]},{n:'Fallback',atk:[8,2]}]},
+ keyconf:{name:'Key Confusion Adept',hp:84,seq:[{n:'Public key as secret',str:3},{n:'Sign anything',atk:[6,3]},{n:'kid injection',atk:[13,1],add:['leak',1]}]},
+ fixator:{name:'Session Fixator',hp:80,seq:[{n:'Planted session',atk:[12,1],weak:2},{n:'Hold the cookie',atk:[8,1],blk:14},{n:'Ride the session',atk:[18,1]}]},
+ insider:{name:'Insider',hp:60,seq:[{n:'Admin console',atk:[10,1]},{n:'"Temporary" grant',atk:[6,1],add:['fatigue',1]},{n:'Cover tracks',blk:8,str:1}]},
+ zeroday:{name:'Zero-Day Broker',hp:170,seq:[{n:'Unpatched parser',atk:[20,1]},{n:'Auction',str:2,blk:15},{n:'Chain three bugs',atk:[9,3]},{n:'Drop the PoC',add:['leak',2],vuln:2}]},
+ golden:{name:'The Golden Token Forger',hp:270,fixed:1,seq:[{n:'Steal the signing key',str:2,blk:15},{n:'Mint admin tokens',atk:[12,2]},{n:'Backdoor the JWKS',add:['leak',2],frail:2},{n:'scope=*',atk:[28,1]},{n:'Sign as anyone',strip:1,atk:[6,2]}]}
+};
+const ACTS=[
+ {name:'The Front Channel',fights:[['kiddie'],['phish'],['redirector'],['bot','bot','bot'],['csrf']],elites:[['interceptor']],boss:['mixup']},
+ {name:'The Back Channel',fights:[['replayer'],['ssrf'],['clickjack'],['hoarder'],['scraper','scraper']],elites:[['deputy'],['algnone']],boss:['phisher']},
+ {name:'The Signing Keys',fights:[['downgrade'],['keyconf'],['fixator'],['insider','insider'],['replayer','ssrf']],elites:[['zeroday']],boss:['golden']}
+];
+const encName=enc=>{const m={};enc.forEach(id=>m[E[id].name]=(m[E[id].name]||0)+1);return Object.entries(m).map(([n,c])=>c>1?`${c} × ${n}s`:n).join(' and ')};
+
+
+/* ---------- base builds ---------- */
+const BUILDS={
+ mobile:{name:'Mobile App',tag:'Public client',t:'event',perk:'enclave',blurb:'Stack Shield, then turn it into damage.',
+  deck:['bearer','bearer','redirect','redirect','pkce'],
+  aff:['pkce','s256','jar','jti','par','state','dpop','iss','device','native','bcp','meta']},
+ spa:{name:'Single-Page App',tag:'Browser client',t:'rest',perk:'renew',blurb:'A bigger hand and cheap tricks. Mind the Implicit Grant.',
+  deck:['bearer','bearer','redirect','redirect','implicit'],
+  aff:['jwt','rar','rotate','refresh','exchange','introspect','stepup','iss','device','rtr','o21','meta']},
+ backend:{name:'Backend Service',tag:'Confidential client',t:'shop',perk:'vault',blurb:'Key Strength makes every hit bigger.',
+  deck:['bearer','bearer','redirect','redirect','secret'],
+  aff:['cc','dcr','assertion','jws','jwe','rar','gnap','revoke','state','algs','mtls','jwtbcp']}
+};
+Object.assign(P,{enclave:['Secure Enclave','Keep up to 8 Shield between turns.'],renew:['Silent Renew','Draw 1 extra card every turn.'],vault:['Secrets Vault','Start each fight with 2 Key Strength.']});
+Object.assign(E.mixup,{hp:118});Object.assign(E.phisher,{hp:142});Object.assign(E.golden,{hp:160});Object.assign(E.deputy,{hp:105});Object.assign(E.zeroday,{hp:110});
+const TUNE=Object.assign({hp:[1.4,1.2,1.45],dmg:[1.5,1.15,1.1],heal:3},window.__TUNE||{}),atkOf=(m,e)=>Math.round(m.atk[0]*TUNE.dmg[e.tier]*(e.duo?.85:1));
+const PERKS=['enclave','renew','vault'],freeP=()=>Object.keys(P).filter(k=>!has(k)&&!PERKS.includes(k));
+const HOPS=7,ELITES=[['interceptor'],['algnone'],['deputy'],['zeroday']];
+
+/* ---------- run ---------- */
+function save(){try{localStorage.setItem('scope-creep-run-v2',JSON.stringify(R))}catch(e){}}
+function loadSave(){try{return JSON.parse(localStorage.getItem('scope-creep-run-v2'))}catch(e){return null}}
+function clearSave(){try{localStorage.removeItem('scope-creep-run-v2')}catch(e){}}
+function newRun(build){
+  const b=BUILDS[build];
+  R={build,boss:pick(['mixup','phisher','golden']),hp:75,max:75,gold:70,relics:[b.perk],act:0,floor:0,used:[],seen:[],rm:60,kills:0,trail:[],draft:5,deck:b.deck.map(id=>({id}))};
+  R.map=genMap();R.opts=genOpts();R.dopts=rollDraft();save();go('draft');
+}
+function genMap(){
+  const sh=a=>shuffle(a.slice()),T1=sh(ACTS[0].fights),T2=sh(ACTS[1].fights),T3=sh(ACTS[2].fights),f=enc=>({t:'fight',enc});
+  const rows=[[f(T1[0]),f(T1[1])],shuffle([f(T1[2]),f(T2[0]),{t:'event'}]),shuffle([f(T2[1]),f(T1[3]),{t:'shop'}]),
+    shuffle([{t:'elite',enc:pick(ELITES)},f(T2[2]),{t:'event'}]),shuffle([f(T3[0]),f(T3[1]),{t:pick(['event','shop'])}]),[{t:'rest'},{t:'shop'}],[{t:'boss',enc:[R.boss]}]];
+  rows.forEach(r=>r.forEach((n,j)=>n.j=j));return rows;
+}
+const link=(k1,j1,k2,j2)=>k1===1||k2===1||Math.abs((j1+.5)/k1-(j2+.5)/k2)<=.34;
+function rollDraft(){
+  const have=R.deck.map(c=>c.id),s=new Set(shuffle(BUILDS[R.build].aff.filter(id=>!have.includes(id)&&C[id].type!=='pwr')).slice(0,2));
+  let g=0;while(s.size<3){const id=rollCard(.05);if((have.includes(id)||C[id].type==='pwr')&&g++<60)continue;s.add(id)}return shuffle([...s]);
+}
+function genOpts(){
+  const row=R.map[R.floor];if(!R.floor)return row;
+  const pr=R.map[R.floor-1],pj=R.trail[R.floor-1];return R.floor===HOPS-2?row:row.filter(n=>link(pr.length,pj,row.length,n.j));
+}
+function advance(){
+  R.trail.push(NODE&&NODE.j!=null?NODE.j:0);R.floor++;
+  NODE=null;G=null;R.opts=genOpts();save();go('map');
+}
+function go(scr){S.scr=scr;sel=null;render()}
+function rollCard(boost=0){const r=Math.random();return pick(POOL(r<.08+boost?2:r<.42+boost?1:0))}
+function rollCards(n,boost){const skip=new Set([...(R?R.deck.map(c=>c.id):[]),...(R&&R.last||[])]),s=new Set();let g=0;
+  while(s.size<n){const id=rollCard(boost);if(skip.has(id)&&g++<80)continue;s.add(id)}if(R)R.last=[...s];return[...s]}
+function gainRelic(){const p=freeP();if(!p.length){R.gold+=30;return null}const k=pick(p);R.relics.push(k);return k}
+const heal=n=>{R.hp=Math.min(R.max,R.hp+n)};
+
+/* ---------- map icons ---------- */
+const MAPICON={
+ fight:`<svg viewBox="0 0 24 24"><path d="M14 2 5 14h6l-1 8 9-12h-6z" fill="#150b2e"/></svg>`,
+ elite:`<svg viewBox="0 0 24 24"><path d="M12 3a8 8 0 0 0-8 8c0 3 1.6 5 3.5 6v3h9v-3c1.9-1 3.5-3 3.5-6a8 8 0 0 0-8-8z" fill="#150b2e"/><circle cx="9" cy="11.5" r="2.2" fill="#fff"/><circle cx="15" cy="11.5" r="2.2" fill="#fff"/><path d="M10 20v-2.5M12 20v-2.5M14 20v-2.5" stroke="#fff" stroke-width="1.4"/></svg>`,
+ event:`<svg viewBox="0 0 24 24"><path d="M8.5 9a3.5 3.5 0 1 1 5.3 3c-1.2.7-1.8 1.4-1.8 2.8V16" fill="none" stroke="#150b2e" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="20" r="1.9" fill="#150b2e"/></svg>`,
+ shop:`<svg viewBox="0 0 24 24"><g fill="none" stroke="#150b2e" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M1.5 9.5 5 7l3.2 1.2"/><path d="M22.5 9.5 19 7l-4.5.6-3.8 2.6a1.4 1.4 0 0 0 1.6 2.3l2.4-1.4 4.4 4.4"/><path d="M5 14.5l4.3 3.8a1.3 1.3 0 0 0 1.9-1.8l1 .9a1.3 1.3 0 0 0 1.9-1.8l.6.5a1.3 1.3 0 0 0 1.9-1.8"/><path d="M3.5 13.5 5 14.5M19.5 15.5l1-1"/></g></svg>`,
+ rest:`<svg viewBox="0 0 24 24"><path d="M15.5 3.2a5 5 0 0 0-5.7 6.4L3.6 15.8a2 2 0 0 0 2.8 2.8l6.2-6.2a5 5 0 0 0 6.4-5.7l-3 3-2.6-.6-.6-2.6z" fill="#150b2e"/></svg>`,
+ done:`<svg viewBox="0 0 24 24"><path d="m4.5 12.5 5 5 10-11" fill="none" stroke="#150b2e" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`};
+
+/* ---------- modifiers ---------- */
+const baseCost=c=>{const d=C[c.id];return c.u&&d.ucost!=null?d.ucost:d.cost};
+const BOON={
+ cheap:{l:'Card modifier',t:'Fast-track',d:'One card that costs 2 or more, and is not a -bis, costs 1 Energy less for the rest of the run. A card can carry one modifier.',f:c=>!c.cheap&&!c.drw&&!c.u&&!C[c.id].nf&&typeof baseCost(c)==='number'&&baseCost(c)>=2,go:c=>{c.cheap=1},pv:c=>({...c,cheap:1})},
+ drw:{l:'Card modifier',t:'Normative reference',d:'One card of your choice also draws a card every time you play it. A card can carry one modifier.',f:c=>!c.drw&&!c.cheap&&C[c.id].type!=='pwr'&&C[c.id].type!=='sts',go:c=>{c.drw=1},pv:c=>({...c,drw:1})},
+ rev2:{l:'Upgrade',t:'Errata batch',d:'Publish a -bis of two cards of your choice.',f:c=>!c.u&&!c.cheap&&C[c.id].type!=='sts',go:c=>{c.u=1},n:2,pv:c=>({...c,u:1})},
+ dup:{l:'Deck',t:'Second implementation',d:'Add a copy of one card in your deck. An upgraded card copies as upgraded, without any Fast-track or draw modifier.',f:c=>C[c.id].type!=='sts',go:c=>{R.deck.push({id:c.id,u:c.u})}},
+ rm:{l:'Deck',t:'Deprecation',d:'Remove one card from your deck and gain 5 maximum Trust.',f:()=>true,go:(c,i)=>{R.deck.splice(i,1);R.max+=5;R.hp+=5}},
+ hp:{l:'Server',t:'Hardening sprint',d:'Gain 8 maximum Trust and recover 12.',now:()=>{R.max+=8;heal(12)}},
+ gold:{l:'Budget',t:'Sponsorship',d:'Gain 90 Consensus to spend at a meeting.',now:()=>{R.gold+=90}}};
+const boonInfo=b=>b.k==='power'?{l:'Power',t:C[b.id].name,d:`Adds the ${C[b.id].name} Power to your deck.`,en:C[b.id].name,et:C[b.id].txt(0,n=>n,n=>n)}:b.k==='policy'?{l:'Policy',t:P[b.id][0],d:P[b.id][1]}:BOON[b.k];
+function rollBoons(elite){
+  if(elite){const ps=shuffle(freeP()).slice(0,3).map(id=>({k:'policy',id}));while(ps.length<3)ps.push({k:['hp','gold','rev2'][ps.length]});return ps}
+  const held=R.deck.map(c=>c.id),aff=BUILDS[R.build].aff;
+  const pw=shuffle(Object.keys(C).filter(id=>C[id].type==='pwr'&&!held.includes(id))).sort((a,b)=>aff.includes(b)-aff.includes(a));
+  const mods=['cheap','drw','rev2'].filter(k=>k!==R.lastMod&&R.deck.some(BOON[k].f));
+  const a={k:mods.length?pick(mods):'hp'};R.lastMod=a.k;
+  const b=pw.length&&Math.random()<.8?{k:'power',id:pw[Math.random()<.6?0:rnd(pw.length)]}:freeP().length?{k:'policy',id:pick(freeP())}:{k:'gold'};
+  const c={k:pick(['dup','rm','hp','gold'].filter(k=>k!==a.k&&k!==b.k))};
+  return[a,b,c];
+}
+
+/* ---------- combat ---------- */
+function fight(node){
+  NODE=node;let uid=0;
+  G={p:{block:0,st:{},pw:{}},turn:0,energy:0,next:{e:0,d:0},hand:[],discard:[],exhaust:[],
+    draw:shuffle(R.deck.map((c,i)=>({...c,k:i}))),
+    enemies:node.enc.map(id=>{const d=E[id],tier=d.fixed?2:ELITES.some(x=>x[0]===id)?1:0,duo=node.enc.length===2&&d.hp>=50,hp=Math.round((d.hp+rnd(Math.ceil(d.hp*.08)+1))*TUNE.hp[tier]*(duo?.78:1));return{uid:uid++,id,tier,duo,d,hp,max:hp,block:0,st:{},i:d.fixed?1:rnd(d.seq.length)}})};
+  if(node.enc.length>1&&!E[node.enc[0]].fixed)G.enemies.forEach((e,i)=>e.i=i);
+  G.p.st.str=(has('hsm')?1:0)+(has('vault')?2:0);
+  if(has('threat'))G.enemies.forEach(e=>e.st.vuln=2);
+  S.scr='combat';sel=null;startTurn();
+}
+function startTurn(){
+  G.turn++;G.p.block=(has('enclave')?Math.min(G.p.block,8):0)+(G.turn===1&&has('exact')?6:0)+(G.p.pw.meta||0);
+  G.energy=3+G.next.e+(G.turn===1&&has('short')?1:0);
+  const n=5+G.next.d+(G.p.pw.rtr||0)+(has('renew')?1:0)+(G.turn===1&&has('oncall')?2:0);G.next={e:0,d:0};
+  drawN(n);G.p.spike=0;
+  if(G.p.pw.aoe){alive().forEach(e=>hitE(e,G.p.pw.aoe));if(!alive().length){busy=true;render();setTimeout(win,480);return}}
+  busy=false;render();
+}
+function costOf(c){const d=C[c.id];if(d.cost==null||d.cost==='X')return d.cost;
+  if(G&&G.p.pw.o21&&(c.id==='bearer'||c.id==='redirect'))return 0;
+  const n=c.u&&d.ucost!=null?d.ucost:d.cost;return c.cheap?Math.max(0,n-1):n}
+const playable=c=>{const k=costOf(c);return k!=null&&(k==='X'||k<=G.energy)};
+function play(i,t){
+  const c=G.hand[i];if(busy||!c||!playable(c))return;const d=C[c.id],k=costOf(c);let x=0;
+  if(d.tgt&&(!t||t.dead))t=alive()[0];
+  if(k==='X'){x=G.energy;G.energy=0}else G.energy-=k;
+  G.hand.splice(i,1);sel=null;
+  const fin=()=>{d.fn(c,t,x);if(c.drw)drawN(1);if(d.type!=='pwr')(d.ex||c.tmp?G.exhaust:G.discard).push(c);busy=false;render();check()};
+  busy=true;sfx('play');render();const ms=cardFx(c,d,t,x);
+  if(ms)setTimeout(fin,ms);else fin();
+}
+function check(){ if(R.hp<=0)return lose(),true; if(!alive().length){busy=true;setTimeout(win,480);return true} return false }
+function hurt(d,direct){
+  if(!direct){const ab=Math.min(G.p.block,d);G.p.block-=ab;d-=ab;if(!d){fx('you','blocked','blk');return}}
+  if(has('consent')&&(G.cs||0)<8){const a=Math.min(d,8-(G.cs||0));G.cs=(G.cs||0)+a;d-=a;fx('you',a+' absorbed','info');if(!d)return}
+  R.hp=Math.max(0,R.hp-d);G.p.flash=1;fx('you','-'+d,'dmg');sfx('hurt');
+}
+async function endTurn(){
+  if(busy||S.scr!=='combat')return;busy=true;sel=null;sfx('end');
+  G.hand.filter(c=>c.id==='leak').forEach(()=>hurt(2,true));
+  G.discard.push(...G.hand);G.hand=[];
+  for(const k of['weak','frail'])if(G.p.st[k])G.p.st[k]--;
+  render();if(R.hp<=0)return lose();await sleep(200);
+  for(const e of G.enemies){
+    if(e.dead)continue;e.block=0;
+    if(e.st.pois){e.hp-=e.st.pois;fx('e'+e.uid,'-'+e.st.pois+' revoked','dmg');e.st.pois--;e.flash=1;if(e.hp<=0){e.hp=0;e.dead=1;render();await sleep(300);continue}}
+    await doMove(e);
+    for(const k of['weak','vuln'])if(e.st[k])e.st[k]--;
+    e.i++;render();if(R.hp<=0)return lose();await sleep(240);
+  }
+  if(!alive().length)return win();
+  if(G.p.st.vuln)G.p.st.vuln--;
+  startTurn();
+}
+async function doMove(e){
+  const m=e.d.seq[e.i%e.d.seq.length];e.act=1;render();await sleep(150);if(!m.atk)moveFx(m,e);
+  if(m.strip&&G.p.block){G.p.block=0;fx('you','Shield stripped','info')}
+  if(m.atk)for(let k=0;k<m.atk[1];k++){await new Promise(r=>setTimeout(r,moveFx(m,e)));{const h0=R.hp;hurt(calc(atkOf(m,e),e.st,G.p.st));if(G.p.pw.mtls)hitE(e,G.p.pw.mtls);if(G.p.spike)hitE(e,G.p.spike);if(R.hp<h0&&G.p.pw.rev)Sx(e,'pois',G.p.pw.rev)}render();await sleep(110);if(R.hp<=0||e.dead)break}
+  if(!e.dead){
+    if(m.blk)e.block+=m.blk;
+    if(m.str){e.st.str=(e.st.str||0)+m.str;fx('e'+e.uid,'+'+m.str+' Escalation','info')}
+    for(const k of['vuln','weak','frail'])if(m[k]){G.p.st[k]=(G.p.st[k]||0)+m[k];fx('you','+'+m[k]+' '+STN[k],'info')}
+    if(m.add){for(let i=0;i<m.add[1];i++)G.discard.push(mk(m.add[0]));fx('you','+'+m.add[1]+' '+C[m.add[0]].name,'info');pagesFx(e,m.add[1])}
+  }
+  e.act=0;
+}
+function win(){
+  R.kills+=G.enemies.length;R.used.push(NODE.enc.join());
+  if(has('audit'))heal(6);
+  if(NODE.t==='boss'){clearSave();sfx('win');return go('win')}
+  const t=NODE.t,gold=(t==='elite'?28:12)+rnd(9);R.gold+=gold;
+  heal(TUNE.heal);RW={gold,elite:t==='elite',boons:rollBoons(t==='elite'),done:null};
+  go('reward');
+}
+function lose(){busy=true;clearSave();sfx('lose');setTimeout(()=>go('over'),500)}
+
+/* ---------- views ---------- */
+const fmt=s=>esc(s).replace(/\b(?<!Leaked |Bearer |Refresh |Web )(Shield|Exposed|Throttled|Misconfigured|Revoked|Key Strength|Exhaust|Energy?|Trust|Status)\b/g,'<b>$1</b>');
+/* ---------- card library (per viewer) ---------- */
+let LIB={seen:{},own:{}},libDirty=false;
+try{const l=JSON.parse(localStorage.getItem('scope-creep-lib'));if(l&&l.seen&&l.own)LIB=l}catch(e){}
+function libMark(id,own){if(!C[id])return;if(!LIB.seen[id]){LIB.seen[id]=1;libDirty=true}if(own&&!LIB.own[id]){LIB.own[id]=1;libDirty=true}}
+function libSave(){if(!libDirty)return;libDirty=false;try{localStorage.setItem('scope-creep-lib',JSON.stringify(LIB))}catch(e){}}
+const LIBGROUPS=['Credential','Grant','Check','Endpoint','Lifecycle','JOSE','Standard','Status'];
+const libState=id=>LIB.own[id]?'own':LIB.seen[id]?'seen':'new';
+function libBody(f){
+  const ids=Object.keys(C),n={all:ids.length,own:0,seen:0,new:0};ids.forEach(id=>n[libState(id)]++);
+  const show=id=>f==='all'||libState(id)===f||(f==='seen'&&libState(id)==='own');
+  const grp=g=>ids.filter(id=>(FAM[id]||'Status')===g&&show(id));
+  const tile=id=>{const st=libState(id),d=C[id];
+    if(st==='new')return `<div class="libc"><div class="card unk t-${d.type}"><span class="q">?</span><span class="ft">${FAM[id]||'Status'}<span></span></span></div><em>Not yet seen</em></div>`;
+    return `<div class="libc">${cardHTML({id})}<em>${st==='own'?'In a deck':'Seen'}</em></div>`};
+  return `<p class="muted">Every card you have been offered or held is recorded on this device. ${n.seen+n.own} of ${n.all} seen so far.</p>
+   ${LIBGROUPS.map(g=>{const l=grp(g);return l.length?`<h3 class="libh">${g}</h3><div class="cards lib">${l.map(tile).join('')}</div>`:''}).join('')||'<p class="muted">Nothing here yet.</p>'}`;
+}
+
+function diffTx(a,b){
+  const tk=t=>t.split(/(\s+|[.,()])/).filter(x=>x!==''),A=tk(a),B=tk(b),n=A.length,m=B.length,L=Array.from({length:n+1},()=>new Array(m+1).fill(0));
+  for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)L[i][j]=A[i]===B[j]?L[i+1][j+1]+1:Math.max(L[i+1][j],L[i][j+1]);
+  const out=[];let i=0,j=0;
+  while(j<m){if(i<n&&A[i]===B[j]){out.push(B[j]);i++;j++}else if(i<n&&L[i+1][j]>=L[i][j+1])i++;else{out.push('\u0001'+B[j]+'\u0002');j++}}
+  return fmt(out.join('')).replace(/\u0002(\s*)\u0001/g,'$1').replace(/\u0001/g,'<mark class="chg">').replace(/\u0002/g,'</mark>');
+}
+function cardHTML(c,o={}){
+  const d=C[c.id],inC=o.combat&&G;libMark(c.id);
+  const dm=n=>inC?calc(n,G.p.st):n, bl=n=>inC?Math.round(n*(G.p.st.frail?.75:1)):n;
+  const k=inC||!G?costOf(c):(d.cost==null||d.cost==='X'?d.cost:Math.max(0,(c.u&&d.ucost!=null?d.ucost:d.cost)-(c.cheap?1:0)));
+  const tag=o.tag||(o.a?'button':'div'),df=o.diff,ch=x=>x?' chg':'';
+  return `<${tag} class="card t-${d.type} r-${d.rar} ${o.cls||''}" ${o.a?`data-a="${o.a}" data-i="${o.i}"`:''}>
+    <span class="top"><span class="cost${ch(df&&costOf(df)!==k)}">${k==null?'–':k}</span><span class="ref">${esc(d.ref)}</span></span>
+    <span class="nm">${esc(d.name)}${c.u?`<i class="${ch(df&&!df.u)}">-bis</i>`:''}</span>
+    <span class="tx">${df?diffTx(d.txt(df.u,dm,bl),d.txt(c.u,dm,bl)):fmt(d.txt(c.u,dm,bl))}</span>
+    <span class="fl">${esc(LORE[c.id]||'')}</span>
+    ${c.drw?`<span class="msticker draw${ch(df&&!df.drw)}">+1<br>Draw</span>`:''}${c.cheap?`<span class="msticker fast${ch(df&&!df.cheap)}">Fast-<br>track</span>`:''}<span class="ft">${FAM[c.id]||TYPE[d.type]}<span>${d.rar>0?'*'.repeat(d.rar+1):''}</span></span></${tag}>`;
+}
+const chip=(label,n,tip,cls='')=>`<span class="chip ${cls}" data-a="tip" data-i="${esc(label+': '+tip)}">${esc(label)}${n!=null?' '+n:''}</span>`;
+function chips(u,isP){
+  let h=u.block?chip('Shield',u.block,KW.Shield,'blk'):'';
+  if(isP&&u.spike)h+=chip('Proof key',u.spike,'Until your next turn, attackers that hit you take this much damage.','buf');
+  if(u.st.str)h+=chip(isP?'Key Strength':'Escalation',u.st.str,isP?KW['Key Strength']:KW.Escalation,'buf');
+  for(const k in STN)if(u.st[k])h+=chip(STN[k],u.st[k],KW[STN[k]],'bad');
+  if(isP)for(const k in u.pw)h+=chip(PWN[k][0],null,PWN[k][1].replace('{n}',u.pw[k]),'buf');
+  return h;
+}
+function mvLabel(m,e){
+  const p=[];
+  if(m.atk){const d=calc(atkOf(m,e),e.st,G.p.st);p.push('Attack '+d+(m.atk[1]>1?'×'+m.atk[1]:''))}
+  if(m.strip)p.push('Strip Shield');if(m.blk)p.push('Fortify');if(m.str)p.push('Escalate');
+  if(m.vuln||m.weak||m.frail)p.push('Tamper');if(m.add)p.push('Corrupt deck');
+  return p.join(' + ');
+}
+function intent(e){
+  const q=e.d.seq,m=q[e.i%q.length];
+  return `<div class="intent ${m.atk?'k-atk':''}">${e.d.fixed?`<em>then ${mvLabel(q[(e.i+1)%q.length],e)}</em>`:''}<b>${mvLabel(m,e)}</b><span>${esc(m.n)}</span></div>`;
+}
+const hpbar=(hp,max)=>`<div class="hpbar"><i style="width:${100*hp/max}%"></i><span>${hp}/${max}</span></div>`;
+const V={
+ title(){const s=loadSave();const dt=new Date().toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const pal=['--mag','--cyan','--yel','--lime','--vio'];let n=0;
+  const word=w=>`<span>${w.split('').map(ch=>`<i style="--c:var(${pal[n%5]});--r:${n%2?3:-4}deg;--d:-${(n++*.43).toFixed(2)}s">${ch}</i>`).join('')}</span>`;
+  return `<div class="col bare"><p class="turnhint">↻ Best played with your phone sideways</p><article class="memo">
+   <div class="hdr"><div>OAuth Working Group<br>Request for Comments: 6749-RL<br>Category: Roguelike</div><div>A. Server, Ed.<br>${dt}</div></div>
+   <h1 class="cut" aria-label="Scope Creep">${word('SCOPE')}${word('CREEP')}</h1>
+   <div><h3>Abstract</h3><p>You are an authorization server. Attackers are coming for your tokens. Draft RFCs into your deck, spend Energy to play them, and then protect your Trust through seven hops of the threat model, picking up modifiers on the way.</p></div>
+   
+   <div class="go"><button class="btn primary big" data-a="new">Start a new run</button>${s&&s.deck&&s.build&&s.map?`<button class="btn big" data-a="cont">Continue (${BUILDS[s.build].name}, hop ${s.floor+1})</button>`:''}<button class="btn big" data-a="lib" data-i="all">Card library</button><button class="btn big" data-a="help">How to play</button></div>
+  </article></div>`},
+ build(){const sum=d=>{const m={};d.forEach(id=>m[C[id].name]=(m[C[id].name]||0)+1);return Object.entries(m).map(([n,c])=>c>1?c+' × '+n:n).join(', ')};
+  return `<div class="col"><div><div class="eyebrow">New run</div><h2>What are you protecting?</h2><p class="turnhint" style="margin:10px 0 0">↻ Best played with your phone sideways</p></div>
+   <p class="muted">Start with 2× Bearer Token, 2× Validate Signature, and one special RFC. Draft 5 more to finish the deck.</p>
+   <div class="opts">${Object.entries(BUILDS).map(([k,b])=>`<button class="opt t-${b.t}" data-a="build" data-i="${k}"><span class="k">${b.tag}</span><span class="bp">${puppet('you-'+k,b.art)}</span>
+    <span class="n">${b.name}</span><span class="s">${b.blurb}</span><span class="s"><b>${P[b.perk][0]}.</b> ${P[b.perk][1]}</span><span class="s"><b>Special RFC: ${C[b.deck[4]].name}.</b> ${C[b.deck[4]].txt(0,n=>n,n=>n)}</span></button>`).join('')}</div></div>`},
+ draft(){const b=BUILDS[R.build];
+  return `<div class="col"><div><div class="eyebrow">${b.name} · pick ${6-R.draft} of 5</div><h2>Draft your opening deck.</h2></div>
+   <p class="muted">Choose one of these RFCs to add to your deck.</p>
+   <div class="cards">${R.dopts.map((id,i)=>cardHTML({id},{a:'dpick',i})).join('')}</div>
+   <p class="muted">Your deck so far (${R.deck.length} of 10)</p><div class="cards mini">${R.deck.map(c=>cardHTML(c)).join('')}</div></div>`},
+ map(){
+  const rows=R.map,H=90,n=rows.length,tot=n*H,full=tot+70,X=(k,j)=>(j+.5)/k*100,Y=r=>tot-(r+.5)*H+16;
+  const nm=o=>o.enc?encName(o.enc):o.t==='event'?'Hallway event':o.t==='shop'?'Standards Meeting':'Maintenance';
+  let cas='',inn='',nodes='',bands='';
+  const seg=(x1,y1,x2,y2,c)=>{cas+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="${c}"/>`;inn+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="${c}"/>`};
+  rows[0].forEach((o,j)=>seg(50,full-26,X(rows[0].length,j),Y(0),R.trail[0]===j?'tk':R.floor===0?'op':'past'));
+  for(let r=0;r<n-1;r++)rows[r].forEach((a,j)=>rows[r+1].forEach((b,m)=>{if(r!==HOPS-3&&!link(rows[r].length,j,rows[r+1].length,m))return;
+    const tk=R.trail[r]===j&&R.trail[r+1]===m,op=r+1===R.floor&&R.trail[r]===j,past=r+1<=R.floor;
+    seg(X(rows[r].length,j),Y(r),X(rows[r+1].length,m),Y(r+1),tk?'tk':op?'op':past?'past':'')}));
+  rows.forEach((row,r)=>{
+    const boss=r===n-1,st=r<R.floor?'done':r===R.floor?'now':'todo';
+    bands+=`<div class="mband ${r%2?'alt':''} ${boss?'boss':''}" style="top:${Y(r)-H/2}px;height:${H}px"><span class="mtab ${st} ${boss?'boss':''}">${boss?'Boss':r+1}</span></div>`;
+    row.forEach((o,j)=>{
+      const done=R.trail[r]===j,oi=r===R.floor?R.opts.findIndex(x=>x.j===j):-1,stt=done?'done':oi>=0?'next':r<=R.floor?'off':'todo';
+      const inner=o.t==='boss'?`${puppet(R.boss,E[R.boss].art)}<span>Boss · ${esc(E[R.boss].name)}</span>`:`${MAPICON[done?'done':o.t]}<span>${esc(nm(o))}</span>`;
+      const pos=`style="left:${X(row.length,j)}%;top:${Y(r)}px"`;
+      nodes+=oi>=0?`<button class="mnode t-${o.t} ${stt}" data-a="node" data-i="${oi}" ${pos}>${inner}</button>`:`<div class="mnode t-${o.t} ${stt}" ${pos}>${inner}</div>`})});
+  const here=R.floor?{x:X(rows[R.floor-1].length,R.trail[R.floor-1]),y:Y(R.floor-1)}:{x:50,y:full-26};
+  return `<div class="col"><div class="maphead"><h2>Choose your next hop</h2></div>
+   <div class="mapsheet">
+    <div class="mapg" style="height:${full}px">${bands}<svg viewBox="0 0 100 ${full}" preserveAspectRatio="none" aria-hidden="true"><g class="cas">${cas}</g><g class="inn">${inn}</g></svg>
+     <div class="mstart" style="left:50%;top:${full-26}px">Start</div>${nodes}
+     <div class="me" style="left:${here.x}%;top:${here.y}px">${puppet('you-'+R.build,BUILDS[R.build].art)}</div></div></div></div>`},
+ combat(){
+  const al=alive(),sc=sel!=null?G.hand[sel]:null,sd=sc&&C[sc.id],targeting=sd&&sd.tgt&&playable(sc);
+  const foes=G.enemies.filter(e=>!(e.dead&&e.gone)).map(e=>`<div class="unit foe ${e.d.fixed?'boss':''} ${e.dead?'dead':''} ${e.flash?'hit':''} ${e.act?'acting':''} ${targeting&&!e.dead?'tgt':''}" role="button" tabindex="0" data-a="foe" data-i="${e.uid}" data-u="e${e.uid}">
+    ${e.dead?'':intent(e)}${pupHTML(e.id,e.d.art,e.uid)}<div class="name">${esc(e.d.name)}</div>${hpbar(e.hp,e.max)}<div class="chips">${chips(e)}</div></div>`).join('');
+  const hint=sc?(!playable(sc)?(costOf(sc)==null?'This card cannot be played.':'Not enough Energy.'):targeting&&(al.length>1||TOUCH)?(TOUCH&&al.length===1?'Tap again to play':'Choose a target'):'Tap again to play'):'';
+  return `<div class="combat"><div class="briefwrap">${brief()}</div>
+   <div class="field"><div class="foes">${foes}</div>
+    <div class="unit you ${G.p.flash?'hit':''}" data-u="you">${pupHTML('you-'+R.build,BUILDS[R.build].art,5)}<div class="name">${BUILDS[R.build].name}</div>${hpbar(R.hp,R.max)}<div class="chips">${chips(G.p,1)}</div></div></div>
+   <div class="table">
+   <div class="side l"><span class="orb" data-a="tip" data-i="Energy: ${KW.Energy}"><b>${G.energy}/3</b>Energy</span>
+    <button class="pile" data-a="piles" data-i="draw"><b>${G.draw.length}</b>Draw</button></div>
+   <div class="hand">${G.hand.map((c,i,h)=>`<div class="slot ${sel===i?'sel':''}" style="--r:${((i-(h.length-1)/2)*2.2).toFixed(1)}deg;--y:${(Math.abs(i-(h.length-1)/2)*4).toFixed(0)}px">${cardHTML(c,{a:'card',i,combat:1,cls:playable(c)?'ok':'no'})}${TOUCH||!LORE[c.id]?'':`<span class="lore">${esc(LORE[c.id])}${kwNotes(c)}</span>`}</div>`).join('')}</div>
+   <div class="side r"><button class="btn primary" id="end-turn" data-a="end" ${busy?'disabled':''}>End turn</button>
+    <button class="pile" data-a="piles" data-i="discard"><b>${G.discard.length}</b>Discard</button></div></div>
+   ${sc&&(TOUCH||hint)?`<div class="preview">${TOUCH?cardHTML(sc,{combat:1})+(kwNotes(sc)?`<div class="lore show">${kwNotes(sc)}</div>`:''):''}<span>${hint}</span></div>`:''}
+  </div>`},
+ reward(){const cl={'Card modifier':'event',Power:'shop',Policy:'shop',Deck:'fight',Server:'rest',Budget:'rest',Upgrade:'rest'};
+  return `<div class="col"><div><div class="eyebrow">${RW.note?'Plugfest':'Threat mitigated'}</div><h2>${RW.elite?'Choose a policy.':'Choose one modifier.'}</h2></div>
+   <p class="muted">${RW.note?esc(RW.note):`+${RW.gold} Consensus and ${TUNE.heal} Trust recovered. You now have ${R.gold} Consensus.`}</p>
+   ${RW.done?`<div class="panel"><div class="relic"><b>${RW.done}</b><span>Applied.</span></div></div><div class="row"><button class="btn primary big" data-a="next">Continue</button></div>`
+   :`<div class="opts">${RW.boons.map((b,i)=>{const o=boonInfo(b);return `<button class="opt t-${cl[o.l]}" data-a="boon" data-i="${i}"><span class="k">${o.l}</span><span class="n">${esc(o.t)}</span><span class="s">${fmt(o.d)}</span>${o.en?`<span class="s"><b>${esc(o.en)}:</b> ${fmt(o.et)}</span>`:''}</button>`}).join('')}</div>
+    <div class="row"><button class="btn" data-a="next">Skip</button></div>`}</div>`},
+ shop(){
+  return `<div class="col"><div><div class="eyebrow">Working group meeting</div><h2>What will the group adopt?</h2></div>
+   <p class="muted">You have <b>${R.gold}</b> Consensus.</p>
+   <div class="cards">${SH.cards.map((s,i)=>`<div class="priced ${s.sold?'sold':''}">${cardHTML({id:s.id},{a:'buy',i,cls:R.gold<s.price?'no':''})}<span class="price">${s.price} Consensus</span></div>`).join('')}</div>
+   <div class="panel">${SH.relics.map((s,i)=>`<div class="row"><button class="btn" data-a="buyr" data-i="${i}" ${s.sold||R.gold<s.price?'disabled':''}>${s.sold?'Adopted':s.price+' Consensus'}</button><div class="relic"><b>${P[s.id][0]}</b><span>${P[s.id][1]}</span></div></div>`).join('')}
+    <div class="row"><button class="btn" data-a="rm" ${SH.rm||R.gold<R.rm?'disabled':''}>${SH.rm?'Deprecated':R.rm+' Consensus'}</button><div class="relic"><b>Deprecate a card</b><span>Remove one card from your deck for good.</span></div></div>
+    <div class="row"><button class="btn" data-a="sheal" ${SH.heal||R.gold<45||R.hp>=R.max?'disabled':''}>${SH.heal?'Patched':'45 Consensus'}</button><div class="relic"><b>Emergency patch</b><span>Recover 15 Trust.</span></div></div>
+    <div class="row"><button class="btn" data-a="srev" ${R.gold<55||!R.deck.some(canUp)?'disabled':''}>55 Consensus</button><div class="relic"><b>Publish a -bis</b><span>Permanently improve one card in your deck.</span></div></div></div>
+   <div class="row"><button class="btn primary big" data-a="next">Leave the meeting</button></div></div>`},
+ rest(){const h=Math.ceil(R.max*.3);
+  return `<div class="col"><div><div class="eyebrow">Maintenance window</div><h2>Traffic is quiet. Use it.</h2></div>
+   <div class="opts"><button class="opt t-rest" data-a="patch"><span class="k">Patch</span><span class="n">Recover ${Math.min(h,R.max-R.hp)} Trust</span><span class="s">Restores 30% of your maximum.</span></button>
+   <button class="opt t-event" data-a="revise"><span class="k">Revise</span><span class="n">Publish a -bis</span><span class="s">Permanently improve one card in your deck.</span></button></div></div>`},
+ event(){
+  return `<div class="col"><div><div class="eyebrow">Unscheduled item</div><h2>${EV.d.t}</h2></div><p>${EV.d.b}</p>
+   ${EV.res?`<div class="panel">${EV.res}</div><div class="row"><button class="btn primary big" data-a="next">Continue</button></div>`
+   :`<div class="opts">${EV.o.map((o,i)=>`<button class="opt" data-a="ev" data-i="${i}"><span class="n">${o.l}</span><span class="s">${o.s}</span></button>`).join('')}</div>
+     ${EV.cards?`<div class="cards">${EV.cards.map(id=>cardHTML({id,u:1})).join('')}</div>`:''}`}</div>`},
+ over(){const by=G?alive().map(e=>e.d.name).join(', '):'';
+  return `<div class="col"><div><div class="eyebrow">Run ended</div><h2>Trust exhausted.</h2></div>
+   <div class="http"><span class="e">HTTP/1.1 400 Bad Request</span>
+Content-Type: application/json
+Cache-Control: no-store
+
+{
+  "error": "invalid_grant",
+  "error_description": "${BUILDS[R.build].name} compromised on hop ${R.floor+1} of ${HOPS}${by?' by '+by:''}",
+  "attackers_stopped": ${R.kills},
+  "deck_size": ${R.deck.length}
+}</div><div class="row"><button class="btn primary big" data-a="new">Start a new run</button><button class="btn big" data-a="deck">Review the deck</button><button class="btn big" data-a="quitok">Back to title</button></div></div>`},
+ win(){
+  return `<div class="col"><div><div class="eyebrow">Run complete</div><h2>The signing keys are safe.</h2></div>
+   <div class="http"><span class="ok">HTTP/1.1 200 OK</span>
+Content-Type: application/json
+Cache-Control: no-store
+
+{
+  "access_token": "you-earned-this-one",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "scope": "victory",
+  "attackers_stopped": ${R.kills},
+  "trust_remaining": ${R.hp},
+  "deck_size": ${R.deck.length}
+}</div><p>Seven hops, every threat mitigated. Your ${BUILDS[R.build].name} build held, and ${E[R.boss].name} is locked out.</p>
+   <div class="row"><button class="btn primary big" data-a="new">Start a new run</button><button class="btn big" data-a="deck">Review the deck</button><button class="btn big" data-a="quitok">Back to title</button></div></div>`}
+};
+function hud(){
+  const h=$('#hud');
+  if(!R||S.scr==='title'){h.innerHTML=`<span class="mark">Scope Creep</span><button class="btn" data-a="mute" aria-label="${MUTE?'Turn sound on':'Turn sound off'}">${MUTE?'♪ off':'♪ on'}</button><button class="btn" data-a="help">?</button>`;return}
+  h.innerHTML=`<span class="mark">Scope Creep</span><span class="stat">Hop ${Math.min(R.floor+1,HOPS)}/${HOPS}</span>
+   <span class="stat hp">Trust <b>${R.hp}/${R.max}</b></span><span class="stat gold">Consensus <b>${R.gold}</b></span>
+   <button class="btn" data-a="deck">Deck ${R.deck.length}</button>${R.relics.length?`<button class="btn" data-a="relics">Policies ${R.relics.length}</button>`:''}<button class="btn" data-a="mute" aria-label="${MUTE?'Turn sound on':'Turn sound off'}">${MUTE?'♪ off':'♪ on'}</button><button class="btn" data-a="quit">Quit</button><button class="btn" data-a="help">?</button>`;
+}
+function render(){
+  hud();const st=$('#stage');st.innerHTML=V[S.scr]();
+  const m=$('#modal');m.hidden=!M;m.innerHTML=M?`<div class="sheet"><div class="head"><h2>${M.title}</h2><button class="btn" data-a="close">Close</button></div>${M.body}</div>`:'';
+  if(R&&R.deck)R.deck.forEach(c=>libMark(c.id,1));libSave();liveSave();
+  {const lvl=R&&R.map&&!['title','build','win','over'].includes(S.scr)?Math.min(R.floor,HOPS-1):0;
+   document.documentElement.style.setProperty('--threat',(lvl/(HOPS-1)).toFixed(3));
+   document.querySelectorAll('#bg .beacon').forEach((b,i)=>b.classList.toggle('on',i<Math.round(lvl*1.5)))}
+  flushFx();
+  if(S.scr==='map'&&!M){const nx=$('.mnode.next');nx&&nx.scrollIntoView({block:'center'})}
+  if(G){G.enemies.forEach(e=>{if(e.dead)e.gone=1;e.flash=0});G.p.flash=0}
+}
+function flushFx(){
+  const seen={};
+  fxq.splice(0).forEach(f=>{const el=$(`[data-u="${f.who}"]`);if(!el)return;const r=el.getBoundingClientRect(),n=seen[f.who]=(seen[f.who]||0)+1;
+    const d=document.createElement('div');d.className='float '+f.cls;d.textContent=f.txt;
+    d.style.left=Math.max(60,Math.min(innerWidth-60,r.left+r.width/2+(n%2?-1:1)*(n-1)*12))+'px';d.style.top=(r.top+r.height*.35+(n-1)*18)+'px';d.style.animationDelay=(n-1)*.07+'s';
+    document.body.appendChild(d);setTimeout(()=>d.remove(),1300)});
+}
+let toastT;
+function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>el.hidden=true,2600)}
+function modal(title,body){M={title,body};render()}
+function openPick(title,filter,cb,pv){
+  pv=pv||(/-bis/.test(title)?c=>({...c,u:1}):null);pickCb=cb;const items=R.deck.map((c,i)=>({c,i})).filter(x=>filter(x.c));
+  modal(title,items.length?`${pv?'<p class="muted">Hover a card to see what changes.</p>':''}<div class="cards">${items.map(x=>pv?`<button class="pvw" data-a="pick" data-i="${x.i}" aria-label="${esc(cname(x.c))}">${cardHTML(x.c,{tag:'span',cls:'before'})}${cardHTML(pv(x.c),{tag:'span',cls:'after',diff:x.c})}</button>`:cardHTML(x.c,{a:'pick',i:x.i})).join('')}</div>`:'<p class="muted">No card in your deck qualifies.</p>');
+}
+const canUp=c=>!c.u&&!c.cheap&&C[c.id].type!=='sts';
+const cname=c=>C[c.id].name+(c.u?'-bis':'');
+
+/* ---------- events ---------- */
+const EVENTS=[
+ {id:'hall',t:'The hallway track',b:'Between sessions, two document editors corner you by the coffee urn. One wants a favour. The other has errata.',
+  o:()=>[{l:'Trade favours',s:'Gain 45 Consensus.',f:()=>{R.gold+=45;return 'You leave with a pocket full of +1s. Gained 45 Consensus.'}},
+   {l:'Take the errata',s:'Revise a random card.',f:()=>{const p=R.deck.filter(canUp);if(!p.length)return 'Every card you hold is already revised. The editor shrugs.';const c=pick(p);c.u=1;return `<b>${cname(c)}</b> is published.`}}]},
+ {id:'disc',t:'Coordinated disclosure',b:'A researcher emails a working proof of concept and a 90-day deadline. Fixing it properly will hurt now and help later.',
+  o:()=>[{l:'Patch in production',s:'Lose 7 Trust. Gain a rare RFC.',f:()=>{R.hp=Math.max(1,R.hp-7);const id=pick(POOL(2));R.deck.push({id});return `Downtime cost you 7 Trust. <b>${C[id].name}</b> joins your deck.`}},
+   {l:'File it for later',s:'Nothing happens.',f:()=>'The ticket joins four hundred others.'}]},
+ {id:'legacy',t:'Legacy integration',b:'A very large customer cannot migrate off the password grant this quarter. They are willing to pay for the privilege.',
+  o:()=>[{l:'Support it',s:'Gain 70 Consensus. Add Password Grant to your deck.',f:()=>{R.gold+=70;R.deck.push({id:'ropc'});return 'Gained 70 Consensus. <b>Password Grant</b> is in your deck now, and it will be hard to get out.'}},
+   {l:'Refuse',s:'Recover 8 Trust.',f:()=>{heal(8);return 'You link them to RFC 9700 section 2.4. Recovered 8 Trust.'}}]},
+ {id:'errata',t:'Errata report',b:'Someone has finally read the security considerations section, and has opinions about one of your cards.',
+  o:()=>[{l:'Deprecate a card',s:'Remove a card from your deck.',f:()=>{openPick('Deprecate which card?',()=>true,i=>{const c=R.deck.splice(i,1)[0];EV.res=`<b>${cname(c)}</b> is now Historic.`});return null}},
+   {l:'Hold for document update',s:'Recover 12 Trust.',f:()=>{heal(12);return 'Nothing changes, which is restful. Recovered 12 Trust.'}}]},
+ {id:'wglc',t:'Working group last call',b:'Three drafts are up for adoption, and each arrives already revised. You can champion one.',
+  init:()=>{EV.cards=rollCards(3,.1)},
+  o:()=>[...EV.cards.map(id=>({l:'Adopt '+C[id].name+'-bis',s:'Add it to your deck.',f:()=>{R.deck.push({id,u:1});EV.cards=null;return `<b>${C[id].name}-bis</b> is adopted.`}})),
+   {l:'Abstain',s:'Nothing happens.',f:()=>{EV.cards=null;return 'You hum for neither option.'}}]},
+ {id:'interop',t:'Interop plugfest',b:'A weekend in a hotel ballroom where implementations are plugged into each other until something breaks. Yours is invited.',
+  o:()=>[{l:'Join the plugfest',s:'Choose a modifier, as if you had won a fight.',f:()=>{RW={gold:0,boons:rollBoons(false),done:null,note:'Three implementations interoperated. One of them was yours.'};go('reward');return null}},
+   {l:'Stay home and patch',s:'Recover 8 Trust.',f:()=>{heal(8);return 'A quiet weekend. Recovered 8 Trust.'}}]},
+ {id:'audit',t:'External audit',b:'A security firm offers to read everything you have ever deployed and write down what they find.',
+  o:()=>[{l:'Commission it',s:'Pay 40 Consensus. Gain a policy.',f:()=>{if(R.gold<40)return 'You cannot afford the auditors. They leave a brochure.';R.gold-=40;const k=gainRelic();return k?`The report is brutal and useful. You adopt <b>${P[k][0]}</b>: ${P[k][1]}`:'They find nothing you had not already fixed, and refund most of the fee.'}},
+   {l:'Decline',s:'Gain 15 Consensus.',f:()=>{R.gold+=15;return 'You keep the budget for the next meeting. Gained 15 Consensus.'}}]}
+];
+
+/* ---------- input ---------- */
+const HELP=()=>`<p>Each turn you draw 5 cards and get 3 Energy. Spend Energy to play cards, then end your turn.</p>
+ <p>Above each attacker is its next move. Block big hits with Shield. Attack the rest of the time.</p>
+ <p>${TOUCH?'Tap a card to read it. Tap it again to play it. Tap an attacker to aim.':'Click a card to play it. With more than one attacker, click the card, then the target.'} ${TOUCH?'Tap':'Click'} the draw or discard pile to see what is in it.</p>
+ <p>Your deck is 5 starter cards plus 5 you pick at the start. Climb 7 hops to the boss. After each fight, pick one reward.</p>
+ <dl>${Object.entries(KW).map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+const ACT={
+ new(){M=null;G=null;R=null;go('build')},
+ build(k){newRun(k)},
+ dpick(i){sfx('pick');R.deck.push({id:R.dopts[i]});R.draft--;if(R.draft>0){R.dopts=rollDraft();save();render()}else{R.dopts=null;save();go('map')}},
+ cont(){R=loadSave();go(R.draft>0?'draft':'map')},
+ help(){modal('How to play',HELP())},
+ quit(){if(S.scr==='over'||S.scr==='win')return ACT.quitok();
+  modal('Quit this run?','<p>The run ends here and its progress is lost. Cards you have seen stay in your card library.</p><div class="row"><button class="btn primary" data-a="quitok">Quit run</button><button class="btn" data-a="close">Keep playing</button></div>')},
+ quitok(){if(busy&&S.scr==='combat'&&G&&alive().length){M=null;render();toast('Wait for the attackers to finish their turn, then quit.');return}
+  clearSave();M=null;pickCb=null;R=null;G=null;NODE=null;RW=null;SH=null;EV=null;sel=null;busy=false;go('title')},
+ lib(f){M={title:'Card library',body:libBody(f||'all')};render();libSave()},
+ close(){M=null;pickCb=null;render()},
+ deck(){const d=R.deck.slice().sort((a,b)=>C[a.id].type.localeCompare(C[b.id].type)||C[a.id].name.localeCompare(C[b.id].name));
+  modal(`Your deck (${d.length})`,`<div class="cards">${d.map(c=>cardHTML(c)).join('')}</div>`)},
+ relics(){modal('Policies in force',`<div class="panel">${R.relics.map(k=>`<div class="relic"><b>${P[k][0]}</b><span>${P[k][1]}</span></div>`).join('')}</div>`)},
+ tip(t){toast(t)},
+ node(i){const o=R.opts[i];NODE=o;
+  if(o.enc)return fight(o);
+  if(o.t==='rest')return go('rest');
+  if(o.t==='shop'){const pr=[42,68,115];SH={cards:shuffle(Object.keys(C).filter(id=>C[id].type==='pwr'&&!R.deck.some(c=>c.id===id))).slice(0,3).map(id=>({id,price:pr[C[id].rar]+rnd(12)})),
+    relics:shuffle(freeP()).slice(0,2).map(id=>({id,price:95+rnd(20)}))};return go('shop')}
+  let p=EVENTS.filter(e=>!R.seen.includes(e.id));if(!p.length){R.seen=[];p=EVENTS}
+  const d=pick(p);R.seen.push(d.id);EV={d};d.init&&d.init();EV.o=d.o();go('event')},
+ ev(i){const r=EV.o[i].f();if(r!=null){EV.res=r;render()}},
+ card(i){i=+i;if(busy)return;const c=G.hand[i],d=C[c.id],al=alive(),ok=playable(c);
+  if(TOUCH){ if(sel===i&&ok&&!(d.tgt&&al.length>1))return play(i,al[0]); sel=i; return render() }
+  if(!ok){toast(costOf(c)==null?'That card cannot be played.':'Not enough Energy.');return}
+  if(d.tgt&&al.length>1){sel=sel===i?null:i;return render()}
+  play(i,al[0])},
+ foe(u){if(busy||sel==null)return;const e=G.enemies.find(e=>e.uid==u),c=G.hand[sel];if(!e||e.dead||!c)return;
+  if(!playable(c))return toast('Not enough Energy.');play(sel,e)},
+ end(){endTurn()},
+ brief(){G.brief=1;render()},
+ mute(){MUTE=!MUTE;try{localStorage.setItem('scope-creep-mute',MUTE?'1':'0')}catch(e){}render()},
+ piles(k){const l=(k==='draw'?G.draw:G.discard).slice().sort((a,b)=>C[a.id].name.localeCompare(C[b.id].name)),ex=G.exhaust;
+  modal(k==='draw'?`Draw pile (${l.length})`:`Discard pile (${l.length})`,(l.length?`<div class="cards">${l.map(c=>cardHTML(c)).join('')}</div>`:'<p class="muted">Empty.</p>')+
+   (k!=='draw'&&ex.length?`<p class="muted">Exhausted this fight</p><div class="cards">${ex.map(c=>cardHTML(c)).join('')}</div>`:''))},
+ boon(i){if(RW.done||M)return;sfx('pick');const b=RW.boons[i],d=BOON[b.k],fin=()=>{RW.done=boonInfo(b).t;render()};
+  if(b.k==='power'){R.deck.push({id:b.id});return fin()}
+  if(b.k==='policy'){R.relics.push(b.id);return fin()}
+  if(d.now){d.now();return fin()}
+  let left=d.n||1;
+  const ask=()=>openPick(d.t+': choose a card'+(left>1?' ('+left+' to go)':''),d.f,j=>{d.go(R.deck[j],j);if(--left>0&&R.deck.some(d.f))ask();else fin()},d.pv);
+  ask()},
+ next(){advance()},
+ buy(i){const s=SH.cards[i];if(R.gold<s.price)return toast('Not enough Consensus.');R.gold-=s.price;s.sold=1;R.deck.push({id:s.id});toast(C[s.id].name+' adopted.');render()},
+ buyr(i){const s=SH.relics[i];if(R.gold<s.price||s.sold)return;R.gold-=s.price;s.sold=1;R.relics.push(s.id);render()},
+ rm(){openPick('Deprecate which card?',()=>true,i=>{R.gold-=R.rm;R.rm+=25;SH.rm=1;const c=R.deck.splice(i,1)[0];toast(cname(c)+' is now Historic.')})},
+ sheal(){if(SH.heal||R.gold<45)return;R.gold-=45;SH.heal=1;heal(15);toast('Recovered 15 Trust.');render()},
+ srev(){if(R.gold<55)return;openPick('Publish a -bis of which card?',canUp,i=>{R.gold-=55;SH.rev=1;R.deck[i].u=1;toast(cname(R.deck[i])+' published.')})},
+ patch(){heal(Math.ceil(R.max*.3));advance()},
+ revise(){openPick('Publish a -bis of which card?',canUp,i=>{R.deck[i].u=1;toast(cname(R.deck[i])+' published.');advance()})},
+ pick(i){const cb=pickCb;pickCb=null;M=null;cb&&cb(+i);render()}
+};
+document.addEventListener('click',ev=>{
+  const el=ev.target.closest('[data-a]');
+  if(!el){if(sel!=null&&S.scr==='combat'&&!busy){sel=null;render()}return}
+  if(el.disabled)return;ACT[el.dataset.a]&&ACT[el.dataset.a](el.dataset.i,el);
+});
+document.addEventListener('keydown',ev=>{
+  if(ev.key==='Escape'){if(M)return ACT.close();if(sel!=null){sel=null;render()}return}
+  if((ev.key==='Enter'||ev.key===' ')&&ev.target.matches&&ev.target.matches('[role=button]')){ev.preventDefault();ev.target.click();return}
+  if(M||S.scr!=='combat'||busy||ev.metaKey||ev.ctrlKey)return;
+  if(ev.key==='e'||ev.key==='E')return endTurn();
+  if(/^[0-9]$/.test(ev.key)){const i=ev.key==='0'?9:+ev.key-1;if(G.hand[i])ACT.card(i)}
+});
+
+/* ---------- boot ---------- */
+const hot=window.claude&&window.claude.hot;
+function snap(){
+  if(!R||!R.build||['title','over','win','build'].includes(S.scr))return null;
+  return {v:2,scr:S.scr,R,NODE,RW,SH,G:G&&{...G,enemies:G.enemies.map(e=>({...e,d:undefined}))},EV:EV&&EV.d?{id:EV.d.id,res:EV.res,cards:EV.cards}:null};
+}
+function liveSave(){try{const d=snap();d?sessionStorage.setItem('scope-creep-live',JSON.stringify(d)):sessionStorage.removeItem('scope-creep-live')}catch(e){}}
+function restore(d){
+  R=d.R;NODE=d.NODE||null;RW=d.RW||null;SH=d.SH||null;G=d.G||null;M=null;pickCb=null;busy=false;sel=null;
+  if(G)G.enemies.forEach(e=>{e.d=E[e.id];e.act=0});
+  EV=null;if(d.EV){const ev=EVENTS.find(x=>x.id===d.EV.id);if(ev){EV={d:ev,res:d.EV.res,cards:d.EV.cards};EV.o=ev.o()}}
+  let scr=d.scr;
+  if(scr==='combat'&&(!G||!alive().length))scr='map';
+  if(scr==='reward'&&!RW||scr==='shop'&&!SH||scr==='event'&&!EV)scr='map';
+  S.scr=scr;
+}
+hot&&hot.snapshot&&hot.snapshot(()=>snap()||{});
+buildBg();
+function boot(d){
+  let live=d&&d.v===2&&d.R?d:null;
+  if(!live){try{const x=JSON.parse(sessionStorage.getItem('scope-creep-live'));if(x&&x.v===2&&x.R)live=x}catch(e){}}
+  if(live){try{restore(live)}catch(e){R=null;G=null;S.scr='title'}}
+  else if(d&&d.R&&d.R.map&&d.R.build){R=d.R;S.scr=R.draft>0?'draft':'map'}
+  render();
+}
+hot&&hot.ready?hot.ready(boot):boot((hot&&hot.data)||{});
+</script>
+</body>
+</html>
